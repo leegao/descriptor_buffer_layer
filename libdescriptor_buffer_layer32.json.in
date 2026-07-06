@@ -1,0 +1,21 @@
+{
+  "file_format_version" : "1.0.0",
+  "layer" : {
+    "name": "VK_LAYER_COMPAT_DescriptorBufferLayer32",
+    "type": "GLOBAL",
+    "library_path": "@JSON_LIBRARY_PATH@libdescriptor_buffer_layer32.so",
+    "api_version": "1.0.0",
+    "implementation_version": "1",
+    "description": "Descriptor Buffer Layer",
+    "functions": {
+      "vkGetInstanceProcAddr": "DescriptorBufferLayer_GetInstanceProcAddr",
+      "vkGetDeviceProcAddr": "DescriptorBufferLayer_GetDeviceProcAddr"
+    },
+    "enable_environment": {
+      "ENABLE_COMPAT_DESCRIPTOR_BUFFER_LAYER": "1"
+    },
+    "disable_environment": {
+      "DISABLE_COMPAT_DESCRIPTOR_BUFFER_LAYER": "1"
+    }
+  }
+}

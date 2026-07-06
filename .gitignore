@@ -67,3 +67,15 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+build/
+build_arm64/
+build_i86/
+
+compile.sh
+compile_android.sh
+
+game.sh
+
+test.cpp
+.zed/

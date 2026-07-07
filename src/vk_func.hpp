@@ -118,6 +118,27 @@ void VKAPI_CALL DescriptorBufferLayer_GetDescriptorSetLayoutBindingOffsetEXT(
     VkDevice device, VkDescriptorSetLayout layout, uint32_t binding,
     VkDeviceSize *pOffset);
 
+VkResult VKAPI_CALL DescriptorBufferLayer_CreatePipelineLayout(
+    VkDevice device, const VkPipelineLayoutCreateInfo *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkPipelineLayout *pPipelineLayout);
+
+void VKAPI_CALL DescriptorBufferLayer_DestroyPipelineLayout(
+    VkDevice device, VkPipelineLayout pipelineLayout,
+    const VkAllocationCallbacks *pAllocator);
+VkResult VKAPI_CALL DescriptorBufferLayer_CreateGraphicsPipelines(
+    VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount,
+    const VkGraphicsPipelineCreateInfo *pCreateInfos,
+    const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines);
+
+VkResult VKAPI_CALL DescriptorBufferLayer_CreateComputePipelines(
+    VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount,
+    const VkComputePipelineCreateInfo *pCreateInfos,
+    const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines);
+
+void VKAPI_CALL
+DescriptorBufferLayer_DestroyPipeline(VkDevice device, VkPipeline pipeline,
+                                      const VkAllocationCallbacks *pAllocator);
+
 VkResult VKAPI_CALL DescriptorBufferLayer_CreateFence(
     VkDevice device, const VkFenceCreateInfo *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkFence *pFence);

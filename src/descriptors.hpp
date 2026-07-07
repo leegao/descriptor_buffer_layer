@@ -19,8 +19,4 @@ struct TrackedDescriptorSetLayout {
     VkDeviceSize totalSize = 0;
 };
 
-struct TrackedPipelineLayout {
-    std::vector<VkDescriptorSetLayout> setLayouts;
-};
-
 #endif // DESCRIPTORS_HPP

@@ -20,8 +20,4 @@ struct buffer {
 
 struct buffer *find_buffer(VkBuffer);
 
-std::unique_ptr<struct buffer>
-create_staging_buffer(struct device *dev, int size, VkFormat format, int width,
-                      int height, std::string_view label = "");
-
 #endif

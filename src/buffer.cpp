@@ -7,69 +7,6 @@
 std::unordered_map<VkBuffer, std::unique_ptr<struct buffer>> buffersMap;
 std::atomic<int> bufferIdCounter;
 
-std::unique_ptr<struct buffer>
-create_staging_buffer(struct device *dev, int size, std::string_view label) {
-    VkResult result;
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-    VkLayerDispatchTable table = dev->table;
-    VkDevice device = dev->handle;
-    uint align = 15;
-    size = (size + align) & ~align;
-    VkBufferCreateInfo buffer_create_info = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .size = static_cast<VkDeviceSize>(size),
-        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = nullptr};
-
-    result = table.CreateBuffer(device, &buffer_create_info, nullptr, &buffer);
-
-    if (result != VK_SUCCESS) {
-        Logger::log("error", "Failed to create staging buffer, res %d", result);
-        return NULL;
-    }
-    VkMemoryRequirements mem_reqs;
-    table.GetBufferMemoryRequirements(device, buffer, &mem_reqs);
-    VkMemoryAllocateInfo allocate_info = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .allocationSize = mem_reqs.size,
-        .memoryTypeIndex = dev->memoryIndex};
-
-    result = table.AllocateMemory(device, &allocate_info, nullptr, &memory);
-    if (result != VK_SUCCESS) {
-        Logger::log("error", "Failed to allocate staging buffer memory, res %d",
-                    result);
-        return NULL;
-    }
-
-    result = table.BindBufferMemory(device, buffer, memory, 0);
-    if (result != VK_SUCCESS) {
-        Logger::log("error", "Failed to bind staging buffer memory, res %d",
-                    result);
-        return NULL;
-    }
-
-    int id = bufferIdCounter.fetch_add(1);
-    auto staging_buf = std::make_unique<struct buffer>();
-    staging_buf->handle = buffer;
-    staging_buf->memory = memory;
-    staging_buf->offset = 0;
-    staging_buf->device = dev;
-    staging_buf->alloc = nullptr;
-    staging_buf->size = size;
-    staging_buf->label = label;
-    staging_buf->id = id;
-
-    return staging_buf;
-}
-
 struct buffer *find_buffer(VkBuffer buffer) {
     auto it = buffersMap.find(buffer);
 

@@ -32,6 +32,10 @@
 
 template <typename T> void *GetKey(T item) { return *(void **)item; }
 
+constexpr size_t kDescriptorSize = 64;
+constexpr uint32_t kMaxBoundSets = 32;
+constexpr size_t kDescriptorAlignment = 64;
+
 extern std::mutex global_lock;
 typedef std::lock_guard<std::mutex> scoped_lock;
 

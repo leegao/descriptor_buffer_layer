@@ -3,10 +3,13 @@
 #include "logger.hpp"
 #include "vulkan/vk_layer.h"
 
-#include <cmath>
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
 #include <memory>
 #include <unistd.h>
 #include <utility>
+#include <vector>
 #include <vulkan/vulkan.h>
 
 std::unordered_map<void *, VkLayerInstanceDispatchTable> instanceDispatch;
@@ -18,6 +21,16 @@ std::unordered_map<void *, VkPhysicalDeviceDriverProperties>
 std::unordered_map<void *, std::shared_ptr<struct device>> deviceMap;
 
 std::mutex global_lock;
+
+static void *GetInstanceKey(VkPhysicalDevice physicalDevice) {
+    auto instance = instanceMap[GetKey(physicalDevice)];
+    if (!instance) {
+        Logger::log("error", "no instance found for physical device %p",
+                    GetKey(physicalDevice));
+        return nullptr;
+    }
+    return GetKey(instance);
+}
 
 #define GETPROCADDR(func)                                                      \
     if (!strcmp(pName, "vk" #func))                                            \
@@ -293,9 +306,8 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_GetPhysicalDeviceFeatures(
     VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures *pFeatures) {
     scoped_lock l(global_lock);
 
-    instanceDispatch[GetKey(physicalDevice)].GetPhysicalDeviceFeatures(
+    instanceDispatch[GetInstanceKey(physicalDevice)].GetPhysicalDeviceFeatures(
         physicalDevice, pFeatures);
-    // pFeatures->textureCompressionBC = true;
 }
 
 VK_LAYER_EXPORT void VKAPI_CALL
@@ -303,9 +315,116 @@ DescriptorBufferLayer_GetPhysicalDeviceFeatures2(
     VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures2 *pFeatures) {
     scoped_lock l(global_lock);
 
-    instanceDispatch[GetKey(physicalDevice)].GetPhysicalDeviceFeatures2(
+    instanceDispatch[GetInstanceKey(physicalDevice)].GetPhysicalDeviceFeatures2(
         physicalDevice, pFeatures);
-    // pFeatures->features.textureCompressionBC = true;
+
+    for (auto *next = static_cast<VkBaseOutStructure *>(pFeatures->pNext);
+         next != nullptr; next = next->pNext) {
+        if (next->sType ==
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT) {
+            auto *features =
+                reinterpret_cast<VkPhysicalDeviceDescriptorBufferFeaturesEXT *>(
+                    next);
+            features->descriptorBuffer = VK_TRUE;
+            features->descriptorBufferCaptureReplay = VK_FALSE; // not emulated
+            features->descriptorBufferImageLayoutIgnored =
+                VK_FALSE; // not emulated
+            features->descriptorBufferPushDescriptors =
+                VK_FALSE; // not emulated
+        }
+    }
+}
+
+VK_LAYER_EXPORT void VKAPI_CALL
+DescriptorBufferLayer_GetPhysicalDeviceProperties2(
+    VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties2 *pProperties) {
+    scoped_lock l(global_lock);
+
+    instanceDispatch[GetInstanceKey(physicalDevice)]
+        .GetPhysicalDeviceProperties2(physicalDevice, pProperties);
+
+    for (auto *next = static_cast<VkBaseOutStructure *>(pProperties->pNext);
+         next != nullptr; next = next->pNext) {
+        if (next->sType ==
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT) {
+            auto *props = reinterpret_cast<
+                VkPhysicalDeviceDescriptorBufferPropertiesEXT *>(next);
+            props->combinedImageSamplerDescriptorSingleArray = VK_TRUE;
+            props->bufferlessPushDescriptors = VK_FALSE;
+            props->allowSamplerImageViewPostSubmitCreation = VK_FALSE;
+            props->descriptorBufferOffsetAlignment = kDescriptorAlignment;
+            props->maxDescriptorBufferBindings = kMaxBoundSets;
+            props->maxResourceDescriptorBufferBindings = kMaxBoundSets;
+            props->maxSamplerDescriptorBufferBindings = kMaxBoundSets;
+            props->maxEmbeddedImmutableSamplerBindings = 0;
+            props->maxEmbeddedImmutableSamplers = 0;
+            // All descriptor sizes (in buffers) are a uniform 64-bytes large
+            props->samplerDescriptorSize = kDescriptorSize;
+            props->combinedImageSamplerDescriptorSize = kDescriptorSize;
+            props->sampledImageDescriptorSize = kDescriptorSize;
+            props->storageImageDescriptorSize = kDescriptorSize;
+            props->uniformTexelBufferDescriptorSize = kDescriptorSize;
+            props->robustUniformTexelBufferDescriptorSize = kDescriptorSize;
+            props->storageTexelBufferDescriptorSize = kDescriptorSize;
+            props->robustStorageTexelBufferDescriptorSize = kDescriptorSize;
+            props->uniformBufferDescriptorSize = kDescriptorSize;
+            props->robustUniformBufferDescriptorSize = kDescriptorSize;
+            props->storageBufferDescriptorSize = kDescriptorSize;
+            props->robustStorageBufferDescriptorSize = kDescriptorSize;
+            props->inputAttachmentDescriptorSize = kDescriptorSize;
+            props->accelerationStructureDescriptorSize = kDescriptorSize;
+            props->maxSamplerDescriptorBufferRange = VK_WHOLE_SIZE;
+            props->maxResourceDescriptorBufferRange = VK_WHOLE_SIZE;
+        }
+    }
+}
+
+VK_LAYER_EXPORT VkResult VKAPI_CALL
+DescriptorBufferLayer_EnumerateDeviceExtensionProperties(
+    VkPhysicalDevice physicalDevice, const char *pLayerName,
+    uint32_t *pPropertyCount, VkExtensionProperties *pProperties) {
+    scoped_lock l(global_lock);
+
+    auto &table = instanceDispatch[GetInstanceKey(physicalDevice)];
+
+    if (pProperties == nullptr) {
+        VkResult result = table.EnumerateDeviceExtensionProperties(
+            physicalDevice, pLayerName, pPropertyCount, nullptr);
+        if (result == VK_SUCCESS)
+            *pPropertyCount += 1;
+        return result;
+    }
+
+    uint32_t capacity = *pPropertyCount;
+    if (capacity == 0) {
+        return VK_SUCCESS;
+    }
+
+    uint32_t queryCount = capacity - 1;
+    VkResult result = table.EnumerateDeviceExtensionProperties(
+        physicalDevice, pLayerName, &queryCount, pProperties);
+
+    if (result != VK_SUCCESS && result != VK_INCOMPLETE) {
+        return result;
+    }
+
+    VkExtensionProperties vkExtDescriptorBuffer{
+        .extensionName = VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
+        .specVersion = VK_EXT_DESCRIPTOR_BUFFER_SPEC_VERSION,
+    };
+
+    pProperties[queryCount] = vkExtDescriptorBuffer;
+    *pPropertyCount = queryCount + 1;
+
+    uint32_t count = 0;
+    table.EnumerateDeviceExtensionProperties(physicalDevice, pLayerName, &count,
+                                             nullptr);
+
+    if ((*pPropertyCount) < (count + 1)) {
+        return VK_INCOMPLETE;
+    }
+
+    return VK_SUCCESS;
 }
 
 void FinalizerThread(struct device *dev) {
@@ -422,6 +541,24 @@ CheckForFaultSupport(VkInstance instance, VkPhysicalDevice physicalDevice) {
     return faultFeatures;
 }
 
+VkPhysicalDeviceBufferDeviceAddressFeatures
+CheckForBufferDeviceAddressSupport(VkInstance instance,
+                                   VkPhysicalDevice physicalDevice) {
+    VkPhysicalDeviceBufferDeviceAddressFeatures bdaFeatures = {
+        .sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+    };
+    VkPhysicalDeviceFeatures2 features = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &bdaFeatures,
+    };
+
+    instanceDispatch[GetKey(instance)].GetPhysicalDeviceFeatures2(
+        physicalDevice, &features);
+
+    return bdaFeatures;
+}
+
 VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
     VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkDevice *pDevice) {
@@ -474,6 +611,14 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
     auto memoryIndex = idx < memoryProps.memoryTypeCount ? idx : UINT32_MAX;
     auto queriedFaultFeatures = CheckForFaultSupport(instance, physicalDevice);
     bool hasFaultSupport = queriedFaultFeatures.deviceFault;
+    auto queriedBDAFeatures =
+        CheckForBufferDeviceAddressSupport(instance, physicalDevice);
+
+    if (!queriedBDAFeatures.bufferDeviceAddress) {
+        Logger::log("error", "FATAL: " VK_EXT_DEVICE_FAULT_EXTENSION_NAME
+                             " not supported, cannot proceed.");
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }
 
     VkBaseOutStructure *ext = (VkBaseOutStructure *)createInfo.pNext;
     VkPhysicalDeviceFeatures2 *appFeatures2 = nullptr;
@@ -496,9 +641,13 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
     std::vector<const char *> enabledExtensions;
     if (createInfo.ppEnabledExtensionNames &&
         createInfo.enabledExtensionCount > 0) {
-        enabledExtensions.assign(createInfo.ppEnabledExtensionNames,
-                                 createInfo.ppEnabledExtensionNames +
-                                     createInfo.enabledExtensionCount);
+        for (uint32_t i = 0; i < createInfo.enabledExtensionCount; ++i) {
+            if (strcmp(createInfo.ppEnabledExtensionNames[i],
+                       VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME) != 0) {
+                enabledExtensions.push_back(
+                    createInfo.ppEnabledExtensionNames[i]);
+            }
+        }
     }
 
     auto hasExtension = [&](const char *name) {
@@ -513,6 +662,14 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
         Logger::log("info",
                     "Adding extension " VK_EXT_DEVICE_FAULT_EXTENSION_NAME);
         enabledExtensions.push_back(VK_EXT_DEVICE_FAULT_EXTENSION_NAME);
+    }
+
+    if (!hasExtension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)) {
+        Logger::log(
+            "info",
+            "Adding extension " VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+        enabledExtensions.push_back(
+            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
     }
 
     createInfo.ppEnabledExtensionNames = enabledExtensions.data();
@@ -535,18 +692,6 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
             layerFaultFeatures.pNext = (void *)createInfo.pNext;
             createInfo.pNext = &layerFaultFeatures;
         }
-    }
-
-    VkPhysicalDeviceFeatures enabledFeatures;
-    if (createInfo.pEnabledFeatures) {
-        enabledFeatures = *createInfo.pEnabledFeatures;
-        // enabledFeatures.textureCompressionBC &=
-        //     featuresMap[GetKey(physicalDevice)].textureCompressionBC;
-
-        createInfo.pEnabledFeatures = &enabledFeatures;
-    } else if (appFeatures2) {
-        // appFeatures2->features.textureCompressionBC &=
-        //     featuresMap[GetKey(physicalDevice)].textureCompressionBC;
     }
 
     PFN_vkCreateDevice createDevice =

@@ -47,7 +47,6 @@ configure_file(
 )
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/test.cpp")
 
 add_library(descriptor_buffer_layer SHARED ${SOURCES})
 

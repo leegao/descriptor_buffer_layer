@@ -2,13 +2,14 @@
 
 #include "command_buffer.hpp"
 #include "pipeline_state.hpp"
+#include <cstring>
 
-ScopedPipelineStateSnapshot::ScopedPipelineStateSnapshot(
-    struct command_buffer *cb)
+ScopedPipelineStateSnapshot::ScopedPipelineStateSnapshot(command_buffer *cb)
     : m_cb(cb), m_snapshot(cb->computePipelineState) {}
 
 ScopedPipelineStateSnapshot::~ScopedPipelineStateSnapshot() {
-    struct device *dev = m_cb->device;
+#ifdef ENABLE_COMPUTE_TRACKING
+    auto *dev = m_cb->device;
 
     if (m_snapshot.pipelineBound && m_snapshot.pipeline != VK_NULL_HANDLE) {
         dev->table.CmdBindPipeline(m_cb->handle, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -38,26 +39,35 @@ ScopedPipelineStateSnapshot::~ScopedPipelineStateSnapshot() {
     }
 
     m_cb->computePipelineState = m_snapshot;
+#endif
 }
 
-void track_push_constants(compute_bind_state &state, VkPipelineLayout layout,
-                          VkShaderStageFlags stageFlags, uint32_t offset,
-                          uint32_t size, const void *pValues) {
+void ComputePipelineBindingsState::TrackPipeline(VkPipeline pipeline) {
+#ifdef ENABLE_COMPUTE_TRACKING
+    pipelineBound = true;
+    pipeline = pipeline;
+#endif
+}
+
+void ComputePipelineBindingsState::TrackPushConstants(
+    VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset,
+    uint32_t size, const void *pValues) {
+#ifdef ENABLE_COMPUTE_TRACKING
     if (!(stageFlags & VK_SHADER_STAGE_COMPUTE_BIT))
         return;
 
     if (offset + size <= kMaxTrackedPushConstantBytes) {
-        std::memcpy(state.pushConstantBytes.data() + offset, pValues, size);
+        std::memcpy(pushConstantBytes.data() + offset, pValues, size);
     } else {
         Logger::log("error",
                     "vkCmdPushConstants: offset+size %u exceeds "
                     "kMaxTrackedPushConstantBytes",
                     offset + size);
     }
-    state.anyPushConstantsPushed = true;
+    anyPushConstantsPushed = true;
 
     bool found = false;
-    for (auto &r : state.pushConstantRanges) {
+    for (auto &r : pushConstantRanges) {
         if (r.layout == layout && r.stageFlags == stageFlags) {
             r.offset = offset;
             r.size = size;
@@ -66,15 +76,15 @@ void track_push_constants(compute_bind_state &state, VkPipelineLayout layout,
         }
     }
     if (!found)
-        state.pushConstantRanges.push_back({layout, stageFlags, offset, size});
+        pushConstantRanges.push_back({layout, stageFlags, offset, size});
+#endif
 }
 
-void track_descriptor_set_binds(compute_bind_state &state,
-                                VkPipelineLayout layout, uint32_t firstSet,
-                                uint32_t descriptorSetCount,
-                                const VkDescriptorSet *pDescriptorSets,
-                                uint32_t dynamicOffsetCount,
-                                const uint32_t *pDynamicOffsets) {
+void ComputePipelineBindingsState::TrackDescriptorSets(
+    VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount,
+    const VkDescriptorSet *pDescriptorSets, uint32_t dynamicOffsetCount,
+    const uint32_t *pDynamicOffsets) {
+#ifdef ENABLE_COMPUTE_TRACKING
     for (uint32_t i = 0; i < descriptorSetCount; i++) {
         uint32_t setIndex = firstSet + i;
         if (setIndex >= kMaxTrackedDescriptorSets) {
@@ -85,7 +95,7 @@ void track_descriptor_set_binds(compute_bind_state &state,
             continue;
         }
 
-        auto &slot = state.sets[setIndex];
+        auto &slot = sets[setIndex];
         slot.valid = true;
         slot.set = pDescriptorSets[i];
         slot.layout = layout;
@@ -107,4 +117,5 @@ void track_descriptor_set_binds(compute_bind_state &state,
             slot.dynamicOffsetCount = 0;
         }
     }
+#endif
 }

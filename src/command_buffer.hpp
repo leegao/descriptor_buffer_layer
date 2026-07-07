@@ -13,7 +13,7 @@ struct command_buffer {
     VkCommandPool pool;
     struct fence *fence;
     std::unique_ptr<StagingResources> currentStagingResources;
-    compute_bind_state computePipelineState;
+    ComputePipelineBindingsState computePipelineState;
 
     void reset_compute_state() { computePipelineState.reset(); }
 };

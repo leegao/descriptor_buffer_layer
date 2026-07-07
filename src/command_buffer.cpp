@@ -239,8 +239,7 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdBindPipeline(
     struct device *dev = cb->device;
 
     if (pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE) {
-        cb->computePipelineState.pipelineBound = true;
-        cb->computePipelineState.pipeline = pipeline;
+        cb->computePipelineState.TrackPipeline(pipeline);
     }
 
     dev->table.CmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
@@ -255,9 +254,9 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorSets(
     struct device *dev = cb->device;
 
     if (pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE) {
-        track_descriptor_set_binds(cb->computePipelineState, layout, firstSet,
-                                   descriptorSetCount, pDescriptorSets,
-                                   dynamicOffsetCount, pDynamicOffsets);
+        cb->computePipelineState.TrackDescriptorSets(
+            layout, firstSet, descriptorSetCount, pDescriptorSets,
+            dynamicOffsetCount, pDynamicOffsets);
     }
 
     dev->table.CmdBindDescriptorSets(
@@ -272,13 +271,12 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorSets2(
     struct device *dev = cb->device;
 
     if (pBindDescriptorSetsInfo->stageFlags & VK_SHADER_STAGE_COMPUTE_BIT) {
-        track_descriptor_set_binds(cb->computePipelineState,
-                                   pBindDescriptorSetsInfo->layout,
-                                   pBindDescriptorSetsInfo->firstSet,
-                                   pBindDescriptorSetsInfo->descriptorSetCount,
-                                   pBindDescriptorSetsInfo->pDescriptorSets,
-                                   pBindDescriptorSetsInfo->dynamicOffsetCount,
-                                   pBindDescriptorSetsInfo->pDynamicOffsets);
+        cb->computePipelineState.TrackDescriptorSets(
+            pBindDescriptorSetsInfo->layout, pBindDescriptorSetsInfo->firstSet,
+            pBindDescriptorSetsInfo->descriptorSetCount,
+            pBindDescriptorSetsInfo->pDescriptorSets,
+            pBindDescriptorSetsInfo->dynamicOffsetCount,
+            pBindDescriptorSetsInfo->pDynamicOffsets);
     }
 
     dev->table.CmdBindDescriptorSets2(commandBuffer, pBindDescriptorSetsInfo);
@@ -291,8 +289,8 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdPushConstants(
     struct command_buffer *cb = get_command_buffer(commandBuffer);
     struct device *dev = cb->device;
 
-    track_push_constants(cb->computePipelineState, layout, stageFlags, offset,
-                         size, pValues);
+    cb->computePipelineState.TrackPushConstants(layout, stageFlags, offset,
+                                                size, pValues);
 
     dev->table.CmdPushConstants(commandBuffer, layout, stageFlags, offset, size,
                                 pValues);
@@ -304,9 +302,10 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdPushConstants2(
     struct command_buffer *cb = get_command_buffer(commandBuffer);
     struct device *dev = cb->device;
 
-    track_push_constants(cb->computePipelineState, pPushConstantsInfo->layout,
-                         pPushConstantsInfo->stageFlags,
-                         pPushConstantsInfo->offset, pPushConstantsInfo->size,
-                         pPushConstantsInfo->pValues);
+    cb->computePipelineState.TrackPushConstants(
+        pPushConstantsInfo->layout, pPushConstantsInfo->stageFlags,
+        pPushConstantsInfo->offset, pPushConstantsInfo->size,
+        pPushConstantsInfo->pValues);
+
     dev->table.CmdPushConstants2(commandBuffer, pPushConstantsInfo);
 }

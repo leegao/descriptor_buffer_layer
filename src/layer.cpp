@@ -810,6 +810,8 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
     GETPROCADDR(CreateBuffer);
     GETPROCADDR(BindBufferMemory);
     GETPROCADDR(BindBufferMemory2);
+    GETPROCADDR(MapMemory);
+    GETPROCADDR(UnmapMemory);
     GETPROCADDR(DestroyBuffer);
     GETPROCADDR(AllocateCommandBuffers);
     GETPROCADDR(FreeCommandBuffers);
@@ -832,6 +834,12 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
     GETPROCADDR(GetDeviceQueue);
     GETPROCADDR(QueueSubmit);
     GETPROCADDR(QueueSubmit2);
+
+    if (!strcmp(pName, "vkGetBufferDeviceAddress") ||
+        !strcmp(pName, "vkGetBufferDeviceAddressKHR")) {
+        return (
+            PFN_vkVoidFunction)&DescriptorBufferLayer_GetBufferDeviceAddress;
+    }
 
     {
         scoped_lock l(global_lock);

@@ -29,7 +29,20 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateBuffer(
 
     table = dev->table;
 
-    create_info.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    bool isDescriptorBuffer =
+        (create_info.usage &
+         (VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
+          VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT)) != 0;
+
+    VkBufferUsageFlags descriptorBufferBits =
+        VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
+        VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
+
+    if (create_info.usage & descriptorBufferBits) {
+        create_info.usage &= ~descriptorBufferBits;
+        create_info.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    }
+    create_info.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     result = table.CreateBuffer(device, &create_info, pAllocator, pBuffer);
     if (result != VK_SUCCESS) {
@@ -43,6 +56,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateBuffer(
     buf->device = dev;
     buf->alloc = pAllocator;
     buf->id = 0;
+    buf->isDescriptorBuffer = isDescriptorBuffer;
 
     {
         scoped_lock l(global_lock);
@@ -73,8 +87,10 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_BindBufferMemory(
     }
 
     struct buffer *buf = find_buffer(buffer);
-    buf->memory = memory;
-    buf->offset = memoryOffset;
+    if (buf) {
+        buf->memory = memory;
+        buf->offset = memoryOffset;
+    }
 
     return VK_SUCCESS;
 }
@@ -120,6 +136,59 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_DestroyBuffer(
     if (!dev || !buf)
         return;
 
+    if (buf->deviceAddress != 0) {
+        std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
+        dev->db.addressRangeStarts.erase(buf->deviceAddress);
+    }
+
     dev->table.DestroyBuffer(device, buffer, pAllocator);
     buffersMap.erase(buffer);
+}
+
+VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_MapMemory(
+    VkDevice device, VkDeviceMemory memory, VkDeviceSize offset,
+    VkDeviceSize size, VkMemoryMapFlags flags, void **ppData) {
+    struct device *dev = get_device(device);
+
+    VkResult result =
+        dev->table.MapMemory(device, memory, offset, size, flags, ppData);
+    if (result != VK_SUCCESS) {
+        Logger::log("error", "vkMapMemory failed, result: %d", result);
+    }
+
+    std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
+    void *baseAddress = static_cast<char *>(*ppData) - offset;
+    dev->db.mappedMemory[memory] = baseAddress;
+
+    return result;
+}
+
+VK_LAYER_EXPORT void VKAPI_CALL
+DescriptorBufferLayer_UnmapMemory(VkDevice device, VkDeviceMemory memory) {
+    struct device *dev = get_device(device);
+
+    dev->table.UnmapMemory(device, memory);
+
+    std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
+    dev->db.mappedMemory.erase(memory);
+}
+
+VK_LAYER_EXPORT VkDeviceAddress VKAPI_CALL
+DescriptorBufferLayer_GetBufferDeviceAddress(
+    VkDevice device, const VkBufferDeviceAddressInfo *pInfo) {
+    struct device *dev = get_device(device);
+
+    VkDeviceAddress address = dev->table.GetBufferDeviceAddress(device, pInfo);
+
+    scoped_lock l(global_lock);
+    struct buffer *buf = find_buffer(pInfo->buffer);
+    if (buf) {
+        std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
+        if (buf->deviceAddress != 0) {
+            dev->db.addressRangeStarts.erase(buf->deviceAddress);
+        }
+        buf->deviceAddress = address;
+        dev->db.addressRangeStarts[address] = pInfo->buffer;
+    }
+    return address;
 }

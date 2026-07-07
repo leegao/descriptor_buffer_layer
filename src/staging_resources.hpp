@@ -4,6 +4,7 @@
 #include "buffer.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>

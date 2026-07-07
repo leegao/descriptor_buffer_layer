@@ -139,6 +139,16 @@ void VKAPI_CALL
 DescriptorBufferLayer_DestroyPipeline(VkDevice device, VkPipeline pipeline,
                                       const VkAllocationCallbacks *pAllocator);
 
+VkResult VKAPI_CALL DescriptorBufferLayer_MapMemory(
+    VkDevice device, VkDeviceMemory memory, VkDeviceSize offset,
+    VkDeviceSize size, VkMemoryMapFlags flags, void **ppData);
+
+void VKAPI_CALL DescriptorBufferLayer_UnmapMemory(VkDevice device,
+                                                  VkDeviceMemory memory);
+
+VkDeviceAddress VKAPI_CALL DescriptorBufferLayer_GetBufferDeviceAddress(
+    VkDevice device, const VkBufferDeviceAddressInfo *pInfo);
+
 VkResult VKAPI_CALL DescriptorBufferLayer_CreateFence(
     VkDevice device, const VkFenceCreateInfo *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkFence *pFence);

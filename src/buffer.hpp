@@ -2,7 +2,6 @@
 #define __BUFFER_HPP
 #include <vulkan/vulkan.h>
 
-#include <memory>
 #include <string_view>
 
 struct device;
@@ -12,6 +11,9 @@ struct buffer {
     VkDeviceMemory memory;
     VkDeviceSize size;
     VkDeviceSize offset;
+    VkDeviceAddress deviceAddress = 0;
+    bool isDescriptorBuffer = false;
+
     struct device *device;
     const VkAllocationCallbacks *alloc;
     std::string_view label;

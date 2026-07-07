@@ -165,7 +165,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateInstance(
 
     while (layerCreateInfo &&
            (layerCreateInfo->sType !=
-                VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO |
+                VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO ||
             layerCreateInfo->function != VK_LAYER_LINK_INFO)) {
         layerCreateInfo = (VkLayerInstanceCreateInfo *)layerCreateInfo->pNext;
     }
@@ -204,6 +204,11 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateInstance(
     table.GetPhysicalDeviceProperties2 =
         (PFN_vkGetPhysicalDeviceProperties2)gip(
             *pInstance, "vkGetPhysicalDeviceProperties2");
+    if (!table.GetPhysicalDeviceProperties2) {
+        table.GetPhysicalDeviceProperties2 =
+            (PFN_vkGetPhysicalDeviceProperties2)gip(
+                *pInstance, "vkGetPhysicalDeviceProperties2KHR");
+    }
     table.GetPhysicalDeviceImageFormatProperties =
         (PFN_vkGetPhysicalDeviceImageFormatProperties)gip(
             *pInstance, "vkGetPhysicalDeviceImageFormatProperties");
@@ -214,9 +219,17 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateInstance(
         *pInstance, "vkGetPhysicalDeviceFeatures");
     table.GetPhysicalDeviceFeatures2 = (PFN_vkGetPhysicalDeviceFeatures2)gip(
         *pInstance, "vkGetPhysicalDeviceFeatures2");
+    if (!table.GetPhysicalDeviceFeatures2) {
+        table.GetPhysicalDeviceFeatures2 =
+            (PFN_vkGetPhysicalDeviceFeatures2)gip(
+                *pInstance, "vkGetPhysicalDeviceFeatures2KHR");
+    }
     table.GetPhysicalDeviceQueueFamilyProperties =
         (PFN_vkGetPhysicalDeviceQueueFamilyProperties)gip(
             *pInstance, "vkGetPhysicalDeviceQueueFamilyProperties");
+    table.EnumerateDeviceExtensionProperties =
+        (PFN_vkEnumerateDeviceExtensionProperties)gip(
+            *pInstance, "vkEnumerateDeviceExtensionProperties");
 
     {
         scoped_lock l(global_lock);
@@ -546,128 +559,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
     }
 
     VkLayerDispatchTable table;
-    table.GetDeviceProcAddr =
-        (PFN_vkGetDeviceProcAddr)gdpa(*pDevice, "vkGetDeviceProcAddr");
-    table.DestroyDevice =
-        (PFN_vkDestroyDevice)gdpa(*pDevice, "vkDestroyDevice");
-    table.AllocateMemory =
-        (PFN_vkAllocateMemory)gdpa(*pDevice, "vkAllocateMemory");
-    table.FreeMemory = (PFN_vkFreeMemory)gdpa(*pDevice, "vkFreeMemory");
-    table.CreateImage = (PFN_vkCreateImage)gdpa(*pDevice, "vkCreateImage");
-    table.CreateImageView =
-        (PFN_vkCreateImageView)gdpa(*pDevice, "vkCreateImageView");
-    table.DestroyImage = (PFN_vkDestroyImage)gdpa(*pDevice, "vkDestroyImage");
-    table.DestroyImageView =
-        (PFN_vkDestroyImageView)gdpa(*pDevice, "vkDestroyImageView");
-    table.CreateBuffer = (PFN_vkCreateBuffer)gdpa(*pDevice, "vkCreateBuffer");
-    table.BindBufferMemory =
-        (PFN_vkBindBufferMemory)gdpa(*pDevice, "vkBindBufferMemory");
-    table.BindBufferMemory2 =
-        (PFN_vkBindBufferMemory2)gdpa(*pDevice, "vkBindBufferMemory2");
-    table.DestroyBuffer =
-        (PFN_vkDestroyBuffer)gdpa(*pDevice, "vkDestroyBuffer");
-    table.AllocateCommandBuffers = (PFN_vkAllocateCommandBuffers)gdpa(
-        *pDevice, "vkAllocateCommandBuffers");
-    table.CreateCommandPool =
-        (PFN_vkCreateCommandPool)gdpa(*pDevice, "vkCreateCommandPool");
-    table.DestroyCommandPool =
-        (PFN_vkDestroyCommandPool)gdpa(*pDevice, "vkDestroyCommandPool");
-    table.GetDeviceQueue =
-        (PFN_vkGetDeviceQueue)gdpa(*pDevice, "vkGetDeviceQueue");
-    table.CreateFence = (PFN_vkCreateFence)gdpa(*pDevice, "vkCreateFence");
-    table.ResetFences = (PFN_vkResetFences)gdpa(*pDevice, "vkResetFences");
-    table.DestroyFence = (PFN_vkDestroyFence)gdpa(*pDevice, "vkDestroyFence");
-    table.WaitForFences =
-        (PFN_vkWaitForFences)gdpa(*pDevice, "vkWaitForFences");
-    table.CreateSemaphore =
-        (PFN_vkCreateSemaphore)gdpa(*pDevice, "vkCreateSemaphore");
-    table.DestroySemaphore =
-        (PFN_vkDestroySemaphore)gdpa(*pDevice, "vkDestroySemaphore");
-    table.DeviceWaitIdle =
-        (PFN_vkDeviceWaitIdle)gdpa(*pDevice, "vkDeviceWaitIdle");
-    table.BeginCommandBuffer =
-        (PFN_vkBeginCommandBuffer)gdpa(*pDevice, "vkBeginCommandBuffer");
-    table.ResetCommandBuffer =
-        (PFN_vkResetCommandBuffer)gdpa(*pDevice, "vkResetCommandBuffer");
-    table.EndCommandBuffer =
-        (PFN_vkEndCommandBuffer)gdpa(*pDevice, "vkEndCommandBuffer");
-    table.QueueSubmit = (PFN_vkQueueSubmit)gdpa(*pDevice, "vkQueueSubmit");
-    table.QueueSubmit2 = (PFN_vkQueueSubmit2)gdpa(*pDevice, "vkQueueSubmit2");
-    table.QueueWaitIdle =
-        (PFN_vkQueueWaitIdle)gdpa(*pDevice, "vkQueueWaitIdle");
-    table.FreeCommandBuffers =
-        (PFN_vkFreeCommandBuffers)gdpa(*pDevice, "vkFreeCommandBuffers");
-    table.CreateDescriptorSetLayout = (PFN_vkCreateDescriptorSetLayout)gdpa(
-        *pDevice, "vkCreateDescriptorSetLayout");
-    table.CreateShaderModule =
-        (PFN_vkCreateShaderModule)gdpa(*pDevice, "vkCreateShaderModule");
-    table.CreatePipelineLayout =
-        (PFN_vkCreatePipelineLayout)gdpa(*pDevice, "vkCreatePipelineLayout");
-    table.CreateComputePipelines = (PFN_vkCreateComputePipelines)gdpa(
-        *pDevice, "vkCreateComputePipelines");
-    table.CreateDescriptorPool =
-        (PFN_vkCreateDescriptorPool)gdpa(*pDevice, "vkCreateDescriptorPool");
-    table.AllocateDescriptorSets = (PFN_vkAllocateDescriptorSets)gdpa(
-        *pDevice, "vkAllocateDescriptorSets");
-    table.UpdateDescriptorSets =
-        (PFN_vkUpdateDescriptorSets)gdpa(*pDevice, "vkUpdateDescriptorSets");
-    table.CmdBindPipeline =
-        (PFN_vkCmdBindPipeline)gdpa(*pDevice, "vkCmdBindPipeline");
-    table.CmdPushConstants =
-        (PFN_vkCmdPushConstants)gdpa(*pDevice, "vkCmdPushConstants");
-    table.CmdPushConstants2 =
-        (PFN_vkCmdPushConstants2)gdpa(*pDevice, "vkCmdPushConstants2");
-    table.CmdBindDescriptorSets =
-        (PFN_vkCmdBindDescriptorSets)gdpa(*pDevice, "vkCmdBindDescriptorSets");
-    table.CmdBindDescriptorSets2 = (PFN_vkCmdBindDescriptorSets2)gdpa(
-        *pDevice, "vkCmdBindDescriptorSets2");
-    table.CmdDispatch = (PFN_vkCmdDispatch)gdpa(*pDevice, "vkCmdDispatch");
-    table.CmdCopyBufferToImage =
-        (PFN_vkCmdCopyBufferToImage)gdpa(*pDevice, "vkCmdCopyBufferToImage");
-    table.CmdCopyBufferToImage2 =
-        (PFN_vkCmdCopyBufferToImage2)gdpa(*pDevice, "vkCmdCopyBufferToImage2");
-    table.CmdCopyBuffer =
-        (PFN_vkCmdCopyBuffer)gdpa(*pDevice, "vkCmdCopyBuffer");
-    table.CmdCopyImage2 =
-        (PFN_vkCmdCopyImage2)gdpa(*pDevice, "vkCmdCopyImage2");
-    table.CmdCopyImage = (PFN_vkCmdCopyImage)gdpa(*pDevice, "vkCmdCopyImage");
-    table.CmdCopyImageToBuffer =
-        (PFN_vkCmdCopyImageToBuffer)gdpa(*pDevice, "vkCmdCopyImageToBuffer");
-    table.CmdPipelineBarrier =
-        (PFN_vkCmdPipelineBarrier)gdpa(*pDevice, "vkCmdPipelineBarrier");
-    table.DestroyDescriptorPool =
-        (PFN_vkDestroyDescriptorPool)gdpa(*pDevice, "vkDestroyDescriptorPool");
-    table.DestroyDescriptorSetLayout = (PFN_vkDestroyDescriptorSetLayout)gdpa(
-        *pDevice, "vkDestroyDescriptorSetLayout");
-    table.FreeDescriptorSets =
-        (PFN_vkFreeDescriptorSets)gdpa(*pDevice, "vkFreeDescriptorSets");
-    table.DestroyPipelineLayout =
-        (PFN_vkDestroyPipelineLayout)gdpa(*pDevice, "vkDestroyPipelineLayout");
-    table.DestroyPipeline =
-        (PFN_vkDestroyPipeline)gdpa(*pDevice, "vkDestroyPipeline");
-    table.DestroyShaderModule =
-        (PFN_vkDestroyShaderModule)gdpa(*pDevice, "vkDestroyShaderModule");
-    table.MapMemory = (PFN_vkMapMemory)gdpa(*pDevice, "vkMapMemory");
-    table.UnmapMemory = (PFN_vkUnmapMemory)gdpa(*pDevice, "vkUnmapMemory");
-    table.InvalidateMappedMemoryRanges =
-        (PFN_vkInvalidateMappedMemoryRanges)gdpa(
-            *pDevice, "vkInvalidateMappedMemoryRanges");
-    table.GetBufferMemoryRequirements = (PFN_vkGetBufferMemoryRequirements)gdpa(
-        *pDevice, "vkGetBufferMemoryRequirements");
-    table.CreateQueryPool =
-        (PFN_vkCreateQueryPool)gdpa(*pDevice, "vkCreateQueryPool");
-    table.CmdResetQueryPool =
-        (PFN_vkCmdResetQueryPool)gdpa(*pDevice, "vkCmdResetQueryPool");
-    table.CmdWriteTimestamp =
-        (PFN_vkCmdWriteTimestamp)gdpa(*pDevice, "vkCmdWriteTimestamp");
-    table.GetQueryPoolResults =
-        (PFN_vkGetQueryPoolResults)gdpa(*pDevice, "vkGetQueryPoolResults");
-    table.DestroyQueryPool =
-        (PFN_vkDestroyQueryPool)gdpa(*pDevice, "vkDestroyQueryPool");
-    table.DeviceSetApiDumpState = (void (*)(VkDevice, bool))gdpa(
-        *pDevice, "vkDeviceSetApiDumpState"); // exposed by custom ApiDump layer
-    table.GetDeviceFaultInfoEXT =
-        (PFN_vkGetDeviceFaultInfoEXT)gdpa(*pDevice, "vkGetDeviceFaultInfoEXT");
+    init_dispatch_table(gdpa, *pDevice, table);
 
     if (table.DeviceSetApiDumpState) {
         Logger::log("info", "[DEBUG] vkDeviceSetApiDumpState "

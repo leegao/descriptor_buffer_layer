@@ -39,29 +39,33 @@
 #ifndef VK_VERSION_1_4
 
 typedef struct VkPushConstantsInfo {
-    VkStructureType       sType;
-    const void*           pNext;
-    VkPipelineLayout      layout;
-    VkShaderStageFlags    stageFlags;
-    uint32_t              offset;
-    uint32_t              size;
-    const void*           pValues;
+    VkStructureType sType;
+    const void *pNext;
+    VkPipelineLayout layout;
+    VkShaderStageFlags stageFlags;
+    uint32_t offset;
+    uint32_t size;
+    const void *pValues;
 } VkPushConstantsInfo;
 
 typedef struct VkBindDescriptorSetsInfo {
-    VkStructureType           sType;
-    const void*               pNext;
-    VkShaderStageFlags        stageFlags;
-    VkPipelineLayout          layout;
-    uint32_t                  firstSet;
-    uint32_t                  descriptorSetCount;
-    const VkDescriptorSet*    pDescriptorSets;
-    uint32_t                  dynamicOffsetCount;
-    const uint32_t*           pDynamicOffsets;
+    VkStructureType sType;
+    const void *pNext;
+    VkShaderStageFlags stageFlags;
+    VkPipelineLayout layout;
+    uint32_t firstSet;
+    uint32_t descriptorSetCount;
+    const VkDescriptorSet *pDescriptorSets;
+    uint32_t dynamicOffsetCount;
+    const uint32_t *pDynamicOffsets;
 } VkBindDescriptorSetsInfo;
 
-typedef void (VKAPI_PTR *PFN_vkCmdBindDescriptorSets2)(VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo);
-typedef void (VKAPI_PTR *PFN_vkCmdPushConstants2)(VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo);
+typedef void(VKAPI_PTR *PFN_vkCmdBindDescriptorSets2)(
+    VkCommandBuffer commandBuffer,
+    const VkBindDescriptorSetsInfo *pBindDescriptorSetsInfo);
+typedef void(VKAPI_PTR *PFN_vkCmdPushConstants2)(
+    VkCommandBuffer commandBuffer,
+    const VkPushConstantsInfo *pPushConstantsInfo);
 
 #endif // VK_VERSION_1_4
 
@@ -210,6 +214,7 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEndEXT;
     PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsertEXT;
     PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfoEXT;
+    PFN_vkGetBufferDeviceAddress GetBufferDeviceAddress;
     void (*DeviceSetApiDumpState)(VkDevice, bool);
 } VkLayerDispatchTable;
 
@@ -222,7 +227,7 @@ typedef struct VkLayerInstanceDispatchTable_ {
     PFN_vkGetPhysicalDeviceImageFormatProperties
         GetPhysicalDeviceImageFormatProperties;
     PFN_vkGetPhysicalDeviceImageFormatProperties2
-    	GetPhysicalDeviceImageFormatProperties2;
+        GetPhysicalDeviceImageFormatProperties2;
     PFN_vkGetPhysicalDeviceFormatProperties GetPhysicalDeviceFormatProperties;
     PFN_vkGetPhysicalDeviceSparseImageFormatProperties
         GetPhysicalDeviceSparseImageFormatProperties;
@@ -277,14 +282,10 @@ typedef struct VkLayerInstanceDispatchTable_ {
         GetPhysicalDeviceDisplayPlanePropertiesKHR;
     PFN_vkGetDisplayPlaneSupportedDisplaysKHR
         GetDisplayPlaneSupportedDisplaysKHR;
-    PFN_vkGetDisplayModePropertiesKHR
-        GetDisplayModePropertiesKHR;
-    PFN_vkCreateDisplayModeKHR
-        CreateDisplayModeKHR;
-    PFN_vkGetDisplayPlaneCapabilitiesKHR
-        GetDisplayPlaneCapabilitiesKHR;
-    PFN_vkCreateDisplayPlaneSurfaceKHR
-        CreateDisplayPlaneSurfaceKHR;
+    PFN_vkGetDisplayModePropertiesKHR GetDisplayModePropertiesKHR;
+    PFN_vkCreateDisplayModeKHR CreateDisplayModeKHR;
+    PFN_vkGetDisplayPlaneCapabilitiesKHR GetDisplayPlaneCapabilitiesKHR;
+    PFN_vkCreateDisplayPlaneSurfaceKHR CreateDisplayPlaneSurfaceKHR;
     PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV
         GetPhysicalDeviceExternalImageFormatPropertiesNV;
 } VkLayerInstanceDispatchTable;
@@ -319,10 +320,10 @@ typedef struct VkLayerDeviceInfo_ {
     PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
 } VkLayerDeviceInfo;
 
-typedef VkResult (VKAPI_PTR *PFN_vkSetInstanceLoaderData)(VkInstance instance,
-        void *object);
-typedef VkResult (VKAPI_PTR *PFN_vkSetDeviceLoaderData)(VkDevice device,
-        void *object);
+typedef VkResult(VKAPI_PTR *PFN_vkSetInstanceLoaderData)(VkInstance instance,
+                                                         void *object);
+typedef VkResult(VKAPI_PTR *PFN_vkSetDeviceLoaderData)(VkDevice device,
+                                                       void *object);
 
 typedef struct {
     VkStructureType sType; // VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO

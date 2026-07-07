@@ -4,6 +4,9 @@
 #include "vulkan/vk_layer.h"
 #include <vulkan/vulkan.h>
 
+void init_dispatch_table(PFN_vkGetDeviceProcAddr, VkDevice,
+                         VkLayerDispatchTable &);
+
 extern "C" {
 
 VkResult VKAPI_CALL DescriptorBufferLayer_CreateImage(

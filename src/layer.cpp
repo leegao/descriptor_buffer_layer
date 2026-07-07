@@ -834,10 +834,20 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
 VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI_CALL
 DescriptorBufferLayer_GetInstanceProcAddr(VkInstance instance,
                                           const char *pName) {
+    if (!strcmp(pName, "vkGetPhysicalDeviceProperties2") ||
+        !strcmp(pName, "vkGetPhysicalDeviceProperties2KHR")) {
+        return (
+            PFN_vkVoidFunction)&DescriptorBufferLayer_GetPhysicalDeviceProperties2;
+    }
+    if (!strcmp(pName, "vkGetPhysicalDeviceFeatures2") ||
+        !strcmp(pName, "vkGetPhysicalDeviceFeatures2KHR")) {
+        return (
+            PFN_vkVoidFunction)&DescriptorBufferLayer_GetPhysicalDeviceFeatures2;
+    }
     GETPROCADDR(CreateInstance);
     GETPROCADDR(EnumeratePhysicalDevices)
     GETPROCADDR(GetPhysicalDeviceFeatures);
-    GETPROCADDR(GetPhysicalDeviceFeatures2);
+    GETPROCADDR(EnumerateDeviceExtensionProperties);
     GETPROCADDR(DestroyInstance);
     GETPROCADDR(CreateDevice);
 

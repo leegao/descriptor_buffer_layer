@@ -181,6 +181,11 @@ DescriptorBufferLayer_AllocateCommandBuffers(
             scoped_lock l(global_lock);
             commandBuffersMap[pCommandBuffers[i]] = cmd;
         }
+
+        if (dev->has_more_layers) {
+            *reinterpret_cast<void **>(pCommandBuffers[i]) =
+                *reinterpret_cast<void **>(device);
+        }
     }
 
     return VK_SUCCESS;

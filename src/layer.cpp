@@ -1,6 +1,8 @@
 #include "layer.hpp"
 
+#include "descriptors.hpp"
 #include "logger.hpp"
+#include "pipeline_state.hpp"
 #include "vulkan/vk_layer.h"
 
 #include <algorithm>
@@ -817,6 +819,10 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
     GETPROCADDR(CmdBindDescriptorSets2);
     GETPROCADDR(CmdPushConstants);
     GETPROCADDR(CmdPushConstants2);
+    GETPROCADDR(CreateDescriptorSetLayout);
+    GETPROCADDR(DestroyDescriptorSetLayout);
+    GETPROCADDR(GetDescriptorSetLayoutSizeEXT);
+    GETPROCADDR(GetDescriptorSetLayoutBindingOffsetEXT);
     GETPROCADDR(GetDeviceQueue);
     GETPROCADDR(QueueSubmit);
     GETPROCADDR(QueueSubmit2);

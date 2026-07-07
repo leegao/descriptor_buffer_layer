@@ -11,6 +11,8 @@ constexpr uint32_t kMaxTrackedDescriptorSets = 32;
 constexpr uint32_t kMaxTrackedPushConstantBytes = 256;
 constexpr uint32_t kMaxTrackedDynamicOffsets = 8;
 
+constexpr uint32_t kMaxBoundSets = 64;
+
 struct BoundDescriptorSet {
     bool valid = false;
     VkDescriptorSet set = VK_NULL_HANDLE;

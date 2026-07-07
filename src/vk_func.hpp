@@ -103,6 +103,21 @@ VkResult VKAPI_CALL DescriptorBufferLayer_QueueSubmit2(
     VkQueue queue, uint32_t submitInfoCount, const VkSubmitInfo2 *pSubmitInfos,
     VkFence fence);
 
+VkResult VKAPI_CALL DescriptorBufferLayer_CreateDescriptorSetLayout(
+    VkDevice device, const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkDescriptorSetLayout *pSetLayout);
+
+void VKAPI_CALL DescriptorBufferLayer_DestroyDescriptorSetLayout(
+    VkDevice device, VkDescriptorSetLayout descriptorSetLayout,
+    const VkAllocationCallbacks *pAllocator);
+
+void VKAPI_CALL DescriptorBufferLayer_GetDescriptorSetLayoutSizeEXT(
+    VkDevice device, VkDescriptorSetLayout layout, VkDeviceSize *pSize);
+
+void VKAPI_CALL DescriptorBufferLayer_GetDescriptorSetLayoutBindingOffsetEXT(
+    VkDevice device, VkDescriptorSetLayout layout, uint32_t binding,
+    VkDeviceSize *pOffset);
+
 VkResult VKAPI_CALL DescriptorBufferLayer_CreateFence(
     VkDevice device, const VkFenceCreateInfo *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkFence *pFence);

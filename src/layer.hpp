@@ -9,9 +9,10 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
-#include <cstring>
+#include <map>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
@@ -32,15 +33,14 @@
 
 template <typename T> void *GetKey(T item) { return *(void **)item; }
 
-constexpr size_t kDescriptorSize = 64;
-constexpr uint32_t kMaxBoundSets = 32;
 constexpr size_t kDescriptorAlignment = 64;
 
 extern std::mutex global_lock;
 typedef std::lock_guard<std::mutex> scoped_lock;
 
-// Object pool for pairs of semaphores and fences for staging resources
-// cleanup signaling
+struct TrackedDescriptorSetLayout;
+struct TrackedPipelineLayout;
+
 class SyncPool {
   public:
     explicit SyncPool(VkDevice device) : device(device) {}
@@ -90,6 +90,16 @@ class DescriptorSetAllocator {
     std::atomic_uint64_t allocated_count = 0;
 };
 
+struct DescriptorBufferEmulationState {
+    std::shared_mutex mutex;
+    std::unordered_map<VkDescriptorSetLayout, TrackedDescriptorSetLayout>
+        descriptorSetLayouts;
+    std::unordered_map<VkPipelineLayout, TrackedPipelineLayout> pipelineLayouts;
+    std::unordered_map<VkPipeline, VkPipelineLayout> pipelines;
+    std::unordered_map<VkDeviceMemory, void *> mappedMemory;
+    std::map<VkDeviceAddress, VkBuffer> addressRangeStarts;
+};
+
 struct device {
     VkDevice handle;
     VkPhysicalDevice physical;
@@ -111,6 +121,7 @@ struct device {
     std::atomic_bool stop_thread{false};
     std::string dump_buffers_path;
     bool has_more_layers = false;
+    DescriptorBufferEmulationState db;
 };
 
 struct device *get_device(VkDevice);

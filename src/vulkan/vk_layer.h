@@ -170,6 +170,7 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkCmdDispatch CmdDispatch;
     PFN_vkCmdDispatchIndirect CmdDispatchIndirect;
     PFN_vkCmdCopyBuffer CmdCopyBuffer;
+    PFN_vkCmdCopyBuffer2 CmdCopyBuffer2;
     PFN_vkCmdCopyImage CmdCopyImage;
     PFN_vkCmdCopyImage2 CmdCopyImage2;
     PFN_vkCmdBlitImage CmdBlitImage;

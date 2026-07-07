@@ -822,6 +822,9 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
     GETPROCADDR(CmdBindDescriptorSets2);
     GETPROCADDR(CmdPushConstants);
     GETPROCADDR(CmdPushConstants2);
+    GETPROCADDR(CmdCopyBuffer);
+    GETPROCADDR(CmdCopyBuffer2);
+    GETPROCADDR(CmdUpdateBuffer);
     GETPROCADDR(CreateDescriptorSetLayout);
     GETPROCADDR(DestroyDescriptorSetLayout);
     GETPROCADDR(GetDescriptorSetLayoutSizeEXT);

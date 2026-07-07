@@ -309,3 +309,58 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdPushConstants2(
 
     dev->table.CmdPushConstants2(commandBuffer, pPushConstantsInfo);
 }
+
+void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer(
+    VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer,
+    uint32_t regionCount, const VkBufferCopy *pRegions) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error",
+                    "vkCmdCopyBuffer called on invalid command buffer");
+        return;
+    }
+
+    struct buffer *buf = find_buffer(dstBuffer);
+    if (buf && buf->isDescriptorBuffer) {
+        Logger::log("error",
+                    "vkCmdCopyBuffer on descriptor buffers not supported");
+    }
+    cb->device->table.CmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer,
+                                    regionCount, pRegions);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer2(
+    VkCommandBuffer commandBuffer, const VkCopyBufferInfo2 *pCopyBufferInfo) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error",
+                    "vkCmdCopyBuffer2 called on invalid command buffer");
+        return;
+    }
+
+    struct buffer *buf = find_buffer(pCopyBufferInfo->dstBuffer);
+    if (buf && buf->isDescriptorBuffer) {
+        Logger::log("error",
+                    "vkCmdCopyBuffer2 on descriptor buffers not supported");
+    }
+    cb->device->table.CmdCopyBuffer2(commandBuffer, pCopyBufferInfo);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdUpdateBuffer(
+    VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
+    VkDeviceSize dataSize, const void *pData) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error",
+                    "vkCmdUpdateBuffer called on invalid command buffer");
+        return;
+    }
+
+    struct buffer *buf = find_buffer(dstBuffer);
+    if (buf && buf->isDescriptorBuffer) {
+        Logger::log("error",
+                    "vkCmdUpdateBuffer on descriptor buffers not supported");
+    }
+    cb->device->table.CmdUpdateBuffer(commandBuffer, dstBuffer, dstOffset,
+                                      dataSize, pData);
+}

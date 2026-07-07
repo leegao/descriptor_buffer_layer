@@ -90,6 +90,17 @@ void VKAPI_CALL DescriptorBufferLayer_CmdCopyImage(
     VkImageLayout dstImageLayout, uint32_t regionCount,
     const VkImageCopy *pRegions);
 
+void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer(
+    VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer,
+    uint32_t regionCount, const VkBufferCopy *pRegions);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer2(
+    VkCommandBuffer commandBuffer, const VkCopyBufferInfo2 *pCopyBufferInfo);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdUpdateBuffer(
+    VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
+    VkDeviceSize dataSize, const void *pData);
+
 void VKAPI_CALL DescriptorBufferLayer_GetDeviceQueue(VkDevice device,
                                                      uint32_t queueFamilyIndex,
                                                      uint32_t queueIndex,
@@ -125,6 +136,7 @@ VkResult VKAPI_CALL DescriptorBufferLayer_CreatePipelineLayout(
 void VKAPI_CALL DescriptorBufferLayer_DestroyPipelineLayout(
     VkDevice device, VkPipelineLayout pipelineLayout,
     const VkAllocationCallbacks *pAllocator);
+
 VkResult VKAPI_CALL DescriptorBufferLayer_CreateGraphicsPipelines(
     VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount,
     const VkGraphicsPipelineCreateInfo *pCreateInfos,

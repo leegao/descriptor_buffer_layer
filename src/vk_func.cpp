@@ -120,6 +120,7 @@ void init_dispatch_table(PFN_vkGetDeviceProcAddr gdpa, VkDevice device,
     GET_DEVICE_PROC(CmdDispatch);
     GET_DEVICE_PROC(CmdDispatchIndirect);
     GET_DEVICE_PROC(CmdCopyBuffer);
+    GET_DEVICE_PROC(CmdCopyBuffer2);
     GET_DEVICE_PROC(CmdCopyImage);
     GET_DEVICE_PROC(CmdCopyImage2);
     GET_DEVICE_PROC(CmdBlitImage);

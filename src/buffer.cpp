@@ -186,6 +186,7 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_MapMemory(
         dev->table.MapMemory(device, memory, offset, size, flags, ppData);
     if (result != VK_SUCCESS) {
         Logger::log("error", "vkMapMemory failed, result: %d", result);
+        return result;
     }
 
     std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer

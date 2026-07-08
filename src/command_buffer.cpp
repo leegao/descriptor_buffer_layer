@@ -1,5 +1,6 @@
 #include "command_buffer.hpp"
 
+#include "descriptor_buffer.hpp"
 #include "layer.hpp"
 #include "logger.hpp"
 #include "mali_gpu_profiler.hpp"
@@ -363,4 +364,93 @@ void VKAPI_CALL DescriptorBufferLayer_CmdUpdateBuffer(
     }
     cb->device->table.CmdUpdateBuffer(commandBuffer, dstBuffer, dstOffset,
                                       dataSize, pData);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDraw(VkCommandBuffer commandBuffer,
+                                              uint32_t vertexCount,
+                                              uint32_t instanceCount,
+                                              uint32_t firstVertex,
+                                              uint32_t firstInstance) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error", "Failed to get command buffer for CmdDraw");
+        return;
+    }
+    ResolveAndBindDescriptorSets(cb->device, cb,
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS);
+    cb->device->table.CmdDraw(commandBuffer, vertexCount, instanceCount,
+                              firstVertex, firstInstance);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexed(
+    VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount,
+    uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error", "Failed to get command buffer for CmdDrawIndexed");
+        return;
+    }
+    ResolveAndBindDescriptorSets(cb->device, cb,
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS);
+    cb->device->table.CmdDrawIndexed(commandBuffer, indexCount, instanceCount,
+                                     firstIndex, vertexOffset, firstInstance);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndirect(
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+    uint32_t drawCount, uint32_t stride) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error",
+                    "Failed to get command buffer for CmdDrawIndirect");
+        return;
+    }
+    ResolveAndBindDescriptorSets(cb->device, cb,
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS);
+    cb->device->table.CmdDrawIndirect(commandBuffer, buffer, offset, drawCount,
+                                      stride);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexedIndirect(
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+    uint32_t drawCount, uint32_t stride) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error",
+                    "Failed to get command buffer for CmdDrawIndexedIndirect");
+        return;
+    }
+    ResolveAndBindDescriptorSets(cb->device, cb,
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS);
+    cb->device->table.CmdDrawIndexedIndirect(commandBuffer, buffer, offset,
+                                             drawCount, stride);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDispatch(VkCommandBuffer commandBuffer,
+                                                  uint32_t groupCountX,
+                                                  uint32_t groupCountY,
+                                                  uint32_t groupCountZ) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error", "Failed to get command buffer for CmdDispatch");
+        return;
+    }
+    ResolveAndBindDescriptorSets(cb->device, cb,
+                                 VK_PIPELINE_BIND_POINT_COMPUTE);
+    cb->device->table.CmdDispatch(commandBuffer, groupCountX, groupCountY,
+                                  groupCountZ);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDispatchIndirect(
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+
+    if (!cb) {
+        Logger::log("error",
+                    "Failed to get command buffer for CmdDispatchIndirect");
+        return;
+    }
+    ResolveAndBindDescriptorSets(cb->device, cb,
+                                 VK_PIPELINE_BIND_POINT_COMPUTE);
+    cb->device->table.CmdDispatchIndirect(commandBuffer, buffer, offset);
 }

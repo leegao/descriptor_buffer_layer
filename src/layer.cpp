@@ -1,5 +1,6 @@
 #include "layer.hpp"
 
+#include "descriptor_buffer.hpp"
 #include "descriptors.hpp"
 #include "logger.hpp"
 #include "pipeline_state.hpp"
@@ -332,6 +333,8 @@ DescriptorBufferLayer_GetPhysicalDeviceFeatures2(
             features->descriptorBufferCaptureReplay = VK_FALSE; // not emulated
             features->descriptorBufferImageLayoutIgnored =
                 VK_FALSE; // not emulated
+            // TODO(leegao): needed for the optimal_performance profile in vkd3d
+            // https://github.com/HansKristian-Work/vkd3d-proton/blob/ce3c862c26ef5b1b74a3a24cf637bddb1adb7a7c/VP_D3D12_VKD3D_PROTON_profile.json#L502
             features->descriptorBufferPushDescriptors =
                 VK_FALSE; // not emulated
         }

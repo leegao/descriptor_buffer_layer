@@ -848,6 +848,7 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
     GETPROCADDR(GetDeviceQueue);
     GETPROCADDR(QueueSubmit);
     GETPROCADDR(QueueSubmit2);
+    GETPROCADDR(GetDescriptorEXT);
 
     if (!strcmp(pName, "vkGetBufferDeviceAddress") ||
         !strcmp(pName, "vkGetBufferDeviceAddressKHR")) {

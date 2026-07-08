@@ -208,6 +208,10 @@ VkResult VKAPI_CALL DescriptorBufferLayer_WaitForFences(VkDevice device,
 
 void VKAPI_CALL DescriptorBufferLayer_DestroyFence(
     VkDevice device, VkFence fence, const VkAllocationCallbacks *pAllocator);
-}
 
+void VKAPI_CALL DescriptorBufferLayer_GetDescriptorEXT(
+    VkDevice device, const VkDescriptorGetInfoEXT *pDescriptorInfo,
+    size_t dataSize, void *pDescriptor);
+
+} // extern "C"
 #endif

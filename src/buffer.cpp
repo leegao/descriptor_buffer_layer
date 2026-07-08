@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 std::unordered_map<VkBuffer, std::unique_ptr<struct buffer>> buffersMap;
+std::unordered_map<VkDeviceMemory, uint32_t> descriptorBufferMemoryCounts;
+
 std::atomic<int> bufferIdCounter;
 
 struct buffer *find_buffer(VkBuffer buffer) {
@@ -15,6 +17,16 @@ struct buffer *find_buffer(VkBuffer buffer) {
         return nullptr;
 
     return it->second.get();
+}
+
+void *get_host_pointer(struct device *dev, VkBuffer buffer) {
+    struct buffer *buf = find_buffer(buffer);
+    if (!buf)
+        return nullptr;
+    auto memIt = dev->db.mappedMemory.find(buf->memory);
+    if (memIt == dev->db.mappedMemory.end())
+        return nullptr;
+    return static_cast<char *>(memIt->second) + buf->offset;
 }
 
 VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateBuffer(
@@ -117,6 +129,9 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_BindBufferMemory(
 
     buf->memory = memory;
     buf->offset = memoryOffset;
+    if (buf->isDescriptorBuffer) {
+        descriptorBufferMemoryCounts[memory]++;
+    }
     BindBufferDeviceAddress(dev, buffer, buf);
 
     return VK_SUCCESS;
@@ -153,6 +168,9 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_BindBufferMemory2(
         }
         buf->memory = pBindInfos[i].memory;
         buf->offset = pBindInfos[i].memoryOffset;
+        if (buf->isDescriptorBuffer) {
+            descriptorBufferMemoryCounts[pBindInfos[i].memory]++;
+        }
         BindBufferDeviceAddress(dev, pBindInfos[i].buffer, buf);
     }
 
@@ -168,6 +186,16 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_DestroyBuffer(
     if (!dev || !buf)
         return;
 
+    if (buf->isDescriptorBuffer && buf->memory != VK_NULL_HANDLE) {
+        auto it = descriptorBufferMemoryCounts.find(buf->memory);
+        if (it != descriptorBufferMemoryCounts.end()) {
+            it->second--;
+            if (it->second <= 0) {
+                descriptorBufferMemoryCounts.erase(it);
+            }
+        }
+    }
+
     if (buf->deviceAddress != 0) {
         std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
         dev->db.addressRangeStarts.erase(buf->deviceAddress);
@@ -181,6 +209,16 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_MapMemory(
     VkDevice device, VkDeviceMemory memory, VkDeviceSize offset,
     VkDeviceSize size, VkMemoryMapFlags flags, void **ppData) {
     struct device *dev = get_device(device);
+
+    {
+        // If this is already cached (descriptor buffer memory), return early
+        std::shared_lock<std::shared_mutex> lock(dev->db.mutex); // reader
+        auto it = dev->db.mappedMemory.find(memory);
+        if (it != dev->db.mappedMemory.end()) {
+            *ppData = static_cast<char *>(it->second) + offset;
+            return VK_SUCCESS;
+        }
+    }
 
     VkResult result =
         dev->table.MapMemory(device, memory, offset, size, flags, ppData);
@@ -200,10 +238,45 @@ VK_LAYER_EXPORT void VKAPI_CALL
 DescriptorBufferLayer_UnmapMemory(VkDevice device, VkDeviceMemory memory) {
     struct device *dev = get_device(device);
 
+    // Keep descriptor buffer memory bound indefinitely for emulation
+    bool isDescriptorMemory = false;
+    {
+        scoped_lock l(global_lock);
+        if (descriptorBufferMemoryCounts.find(memory) !=
+            descriptorBufferMemoryCounts.end()) {
+            isDescriptorMemory = true;
+        }
+    }
+    if (isDescriptorMemory) {
+        return;
+    }
+
     dev->table.UnmapMemory(device, memory);
 
     std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
     dev->db.mappedMemory.erase(memory);
+}
+
+VK_LAYER_EXPORT void VKAPI_CALL
+DescriptorBufferLayer_FreeMemory(VkDevice device, VkDeviceMemory memory,
+                                 const VkAllocationCallbacks *pAllocator) {
+    if (memory == VK_NULL_HANDLE) {
+        return;
+    }
+
+    struct device *dev = get_device(device);
+
+    dev->table.FreeMemory(device, memory, pAllocator);
+
+    {
+        std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
+        dev->db.mappedMemory.erase(memory);
+    }
+
+    {
+        scoped_lock l(global_lock);
+        descriptorBufferMemoryCounts.erase(memory);
+    }
 }
 
 VK_LAYER_EXPORT VkDeviceAddress VKAPI_CALL

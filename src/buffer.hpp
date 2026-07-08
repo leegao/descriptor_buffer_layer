@@ -22,4 +22,6 @@ struct buffer {
 
 struct buffer *find_buffer(VkBuffer);
 
+void *get_host_pointer(struct device *dev, VkBuffer buffer);
+
 #endif

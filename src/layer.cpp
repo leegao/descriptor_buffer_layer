@@ -828,6 +828,14 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
     GETPROCADDR(CmdCopyBuffer);
     GETPROCADDR(CmdCopyBuffer2);
     GETPROCADDR(CmdUpdateBuffer);
+    GETPROCADDR(CmdDraw);
+    GETPROCADDR(CmdDrawIndexed);
+    GETPROCADDR(CmdDrawIndirect);
+    GETPROCADDR(CmdDrawIndexedIndirect);
+    GETPROCADDR(CmdDispatch);
+    GETPROCADDR(CmdDispatchIndirect);
+    GETPROCADDR(CmdBindDescriptorBuffersEXT);
+    GETPROCADDR(CmdSetDescriptorBufferOffsetsEXT);
     GETPROCADDR(CreateDescriptorSetLayout);
     GETPROCADDR(DestroyDescriptorSetLayout);
     GETPROCADDR(GetDescriptorSetLayoutSizeEXT);

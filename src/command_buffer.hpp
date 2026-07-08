@@ -2,6 +2,7 @@
 #define __COMMAND_BUFFER_HPP
 
 #include "buffer.hpp"
+#include "descriptor_buffer.hpp"
 #include "pipeline_state.hpp"
 #include "staging_resources.hpp"
 #include <functional>
@@ -15,7 +16,12 @@ struct command_buffer {
     std::unique_ptr<StagingResources> currentStagingResources;
     ComputePipelineBindingsState computePipelineState;
 
-    void reset_compute_state() { computePipelineState.reset(); }
+    DescriptorBufferBindingsState descriptorBufferState;
+
+    void reset_compute_state() {
+        computePipelineState.reset();
+        descriptorBufferState.Reset();
+    }
 };
 
 struct command_buffer *get_command_buffer(VkCommandBuffer);

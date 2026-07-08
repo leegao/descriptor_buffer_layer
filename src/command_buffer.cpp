@@ -243,6 +243,12 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdBindPipeline(
         cb->computePipelineState.TrackPipeline(pipeline);
     }
 
+    {
+        scoped_lock l(global_lock);
+        cb->descriptorBufferState.TrackPipelineBindings(pipelineBindPoint,
+                                                        pipeline);
+    }
+
     dev->table.CmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
 }
 
@@ -258,6 +264,15 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorSets(
         cb->computePipelineState.TrackDescriptorSets(
             layout, firstSet, descriptorSetCount, pDescriptorSets,
             dynamicOffsetCount, pDynamicOffsets);
+    }
+
+    {
+        // Untrack this if bound manually
+        scoped_lock l(global_lock);
+        for (uint32_t i = 0; i < descriptorSetCount; ++i) {
+            uint32_t setIndex = firstSet + i;
+            cb->descriptorBufferState.UntrackDescriptorSetBindings(setIndex);
+        }
     }
 
     dev->table.CmdBindDescriptorSets(
@@ -280,7 +295,80 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorSets2(
             pBindDescriptorSetsInfo->pDynamicOffsets);
     }
 
+    {
+        // Untrack this if bound manually
+        scoped_lock l(global_lock);
+        for (int i = 0; i < pBindDescriptorSetsInfo->descriptorSetCount; ++i) {
+            uint32_t setIndex = pBindDescriptorSetsInfo->firstSet + i;
+            cb->descriptorBufferState.UntrackDescriptorSetBindings(setIndex);
+        }
+    }
+
     dev->table.CmdBindDescriptorSets2(commandBuffer, pBindDescriptorSetsInfo);
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorBuffersEXT(
+    VkCommandBuffer commandBuffer, uint32_t bufferCount,
+    const VkDescriptorBufferBindingInfoEXT *pBindingInfos) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log(
+            "error",
+            "Failed to get command buffer for CmdBindDescriptorBuffersEXT");
+        return;
+    }
+
+    struct device *dev = cb->device;
+
+    scoped_lock lock(global_lock);
+    // reader (for FindBufferForAddress)
+    std::shared_lock<std::shared_mutex> deviceLock(dev->db.mutex);
+    auto &state = cb->descriptorBufferState;
+
+    for (uint32_t i = 0; i < bufferCount; ++i) {
+        if (i >= kMaxBoundSets) {
+            Logger::log("error",
+                        "vkCmdBindDescriptorBuffersEXT: bufferCount=%u exceeds "
+                        "kMaxBoundSets=%u, ignoring remaining %u buffers",
+                        bufferCount, kMaxBoundSets, bufferCount - i);
+            break;
+        }
+
+        auto address = pBindingInfos[i].address;
+        auto descriptorBuffer = FindBufferForAddress(dev, address);
+        state.TrackDescriptorBufferBindings(
+            i, descriptorBuffer.value_or(VK_NULL_HANDLE), address);
+    }
+}
+
+void VKAPI_CALL DescriptorBufferLayer_CmdSetDescriptorBufferOffsetsEXT(
+    VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
+    VkPipelineLayout layout, uint32_t firstSet, uint32_t setCount,
+    const uint32_t *pBufferIndices, const VkDeviceSize *pOffsets) {
+    struct command_buffer *cb = get_command_buffer(commandBuffer);
+    if (!cb) {
+        Logger::log("error", "Failed to get command buffer for "
+                             "CmdSetDescriptorBufferOffsetsEXT");
+        return;
+    }
+
+    scoped_lock lock(global_lock);
+    auto &state = cb->descriptorBufferState;
+    state.currentPipelineLayout = layout;
+
+    for (uint32_t i = 0; i < setCount; ++i) {
+        uint32_t setIndex = firstSet + i;
+        if (setIndex >= kMaxBoundSets) {
+            Logger::log(
+                "error",
+                "vkCmdSetDescriptorBufferOffsetsEXT: setIndex=%u exceeds "
+                "kMaxBoundSets=%u, ignoring remaining %u sets",
+                setIndex, kMaxBoundSets, setCount - i);
+            break;
+        }
+        state.TrackDescriptorSetBindings(setIndex, pBufferIndices[i],
+                                         pOffsets[i]);
+    }
 }
 
 VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdPushConstants(
@@ -444,7 +532,6 @@ void VKAPI_CALL DescriptorBufferLayer_CmdDispatch(VkCommandBuffer commandBuffer,
 void VKAPI_CALL DescriptorBufferLayer_CmdDispatchIndirect(
     VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
-
     if (!cb) {
         Logger::log("error",
                     "Failed to get command buffer for CmdDispatchIndirect");

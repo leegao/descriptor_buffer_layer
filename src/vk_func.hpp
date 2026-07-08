@@ -101,6 +101,41 @@ void VKAPI_CALL DescriptorBufferLayer_CmdUpdateBuffer(
     VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
     VkDeviceSize dataSize, const void *pData);
 
+void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorBuffersEXT(
+    VkCommandBuffer commandBuffer, uint32_t bufferCount,
+    const VkDescriptorBufferBindingInfoEXT *pBindingInfos);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdSetDescriptorBufferOffsetsEXT(
+    VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
+    VkPipelineLayout layout, uint32_t firstSet, uint32_t setCount,
+    const uint32_t *pBufferIndices, const VkDeviceSize *pOffsets);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDraw(VkCommandBuffer commandBuffer,
+                                              uint32_t vertexCount,
+                                              uint32_t instanceCount,
+                                              uint32_t firstVertex,
+                                              uint32_t firstInstance);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexed(
+    VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount,
+    uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndirect(
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+    uint32_t drawCount, uint32_t stride);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexedIndirect(
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+    uint32_t drawCount, uint32_t stride);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDispatch(VkCommandBuffer commandBuffer,
+                                                  uint32_t groupCountX,
+                                                  uint32_t groupCountY,
+                                                  uint32_t groupCountZ);
+
+void VKAPI_CALL DescriptorBufferLayer_CmdDispatchIndirect(
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset);
+
 void VKAPI_CALL DescriptorBufferLayer_GetDeviceQueue(VkDevice device,
                                                      uint32_t queueFamilyIndex,
                                                      uint32_t queueIndex,

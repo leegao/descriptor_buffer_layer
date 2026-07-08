@@ -86,6 +86,7 @@ std::pair<VkSemaphore, VkFence> SyncPool::Acquire() {
 }
 
 void DescriptorSetAllocator::cleanup() {
+    scoped_lock l(lock);
     if (activePool != VK_NULL_HANDLE) {
         device->table.DestroyDescriptorPool(device->handle, activePool,
                                             nullptr);
@@ -95,6 +96,7 @@ void DescriptorSetAllocator::cleanup() {
         device->table.DestroyDescriptorPool(device->handle, pool, nullptr);
     }
     exhaustedPools.clear();
+    occupancy.clear();
 }
 
 VkResult DescriptorSetAllocator::allocate(VkDescriptorSetLayout layout,
@@ -110,48 +112,75 @@ VkResult DescriptorSetAllocator::allocate(VkDescriptorSetLayout layout,
         .pSetLayouts = &layout,
     };
 
-    VkResult result = device->table.AllocateDescriptorSets(
-        device->handle, &alloc_info, descriptors);
-    VkDescriptorPool initial_pool = alloc_info.descriptorPool;
+    VkResult result = VK_ERROR_OUT_OF_POOL_MEMORY;
+    if (activePool != VK_NULL_HANDLE) {
+        result = device->table.AllocateDescriptorSets(device->handle,
+                                                      &alloc_info, descriptors);
+    }
 
-    // Check through all the previously exhausted pools to see if one of them
-    // has capacity
-    while (result == VK_ERROR_OUT_OF_POOL_MEMORY ||
-           result == VK_ERROR_FRAGMENTED_POOL) {
-        exhaustedPools.push_back(activePool);
-        activePool = exhaustedPools.front();
-        exhaustedPools.erase(exhaustedPools.begin());
-        if (activePool == initial_pool) {
-            // we've looped back to the initial pool, time to allocate a new one
-            break;
+    if (result == VK_ERROR_OUT_OF_POOL_MEMORY ||
+        result == VK_ERROR_FRAGMENTED_POOL || activePool == VK_NULL_HANDLE) {
+
+        if (activePool != VK_NULL_HANDLE) {
+            exhaustedPools.push_back(activePool);
+            activePool = VK_NULL_HANDLE;
         }
+
+        // Find a completely vacant pool
+        auto it = std::find_if(
+            exhaustedPools.begin(), exhaustedPools.end(),
+            [this](VkDescriptorPool p) { return occupancy[p] == 0; });
+
+        if (it != exhaustedPools.end()) {
+            activePool = *it;
+            exhaustedPools.erase(it);
+            device->table.ResetDescriptorPool(device->handle, activePool, 0);
+        } else {
+            result = createNewPool(&activePool);
+            if (result != VK_SUCCESS) {
+                return result;
+            }
+        }
+
         alloc_info.descriptorPool = activePool;
         result = device->table.AllocateDescriptorSets(device->handle,
                                                       &alloc_info, descriptors);
     }
 
-    // None of the pools have capacity, allocate a new one
-    if (result == VK_ERROR_OUT_OF_POOL_MEMORY ||
-        result == VK_ERROR_FRAGMENTED_POOL) {
-        result = createNewPool(&alloc_info.descriptorPool);
-        if (result != VK_SUCCESS) {
-            return result;
-        }
-        exhaustedPools.push_back(activePool);
-        activePool = alloc_info.descriptorPool;
-        result = device->table.AllocateDescriptorSets(device->handle,
-                                                      &alloc_info, descriptors);
+    if (result == VK_SUCCESS) {
+        occupancy[activePool]++;
+        allocated_count++;
+        *pool = alloc_info.descriptorPool;
     }
-    ++allocated_count;
-    *pool = alloc_info.descriptorPool;
     return result;
 }
 
 void DescriptorSetAllocator::free(VkDescriptorPool pool,
                                   VkDescriptorSet descriptors) {
     scoped_lock l(lock);
-    --allocated_count;
     device->table.FreeDescriptorSets(device->handle, pool, 1, &descriptors);
+    allocated_count--;
+
+    if (occupancy.find(pool) != occupancy.end() && occupancy[pool] > 0) {
+        occupancy[pool]--;
+    }
+
+    if (pool != activePool && occupancy[pool] == 0) {
+        auto vacantPools =
+            std::count_if(exhaustedPools.begin(), exhaustedPools.end(),
+                          [&](auto p) { return occupancy.at(p) <= 0; });
+
+        // Destroy the pool if we have too many empty pools already
+        if (vacantPools > maxEmptyPoolsToReserve) {
+            auto it =
+                std::find(exhaustedPools.begin(), exhaustedPools.end(), pool);
+            if (it != exhaustedPools.end()) {
+                exhaustedPools.erase(it);
+            }
+            device->table.DestroyDescriptorPool(device->handle, pool, nullptr);
+            occupancy.erase(pool);
+        }
+    }
 }
 
 VkResult
@@ -169,7 +198,9 @@ DescriptorSetAllocator::createNewPool(VkDescriptorPool *descriptor_pool) {
     if (result != VK_SUCCESS) {
         Logger::log("error", "Failed to allocate new descriptor pool: %d",
                     result);
+        return result;
     }
+    occupancy[*descriptor_pool] = 0;
     return result;
 }
 

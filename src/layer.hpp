@@ -61,7 +61,7 @@ class DescriptorSetAllocator {
   public:
     struct PoolSizes {
         std::vector<VkDescriptorPoolSize> sizes;
-        uint32_t maxSets = 100;
+        uint32_t maxSets = 1024;
     };
 
     explicit DescriptorSetAllocator(struct device *device,
@@ -83,9 +83,11 @@ class DescriptorSetAllocator {
     struct device *device = nullptr;
     VkDescriptorPool activePool = VK_NULL_HANDLE;
     std::vector<VkDescriptorPool> exhaustedPools;
+    std::unordered_map<VkDescriptorPool, uint32_t> occupancy;
     PoolSizes poolSizes;
     std::mutex lock;
-    std::atomic_uint64_t allocated_count = 0;
+    uint64_t allocated_count = 0;
+    const size_t maxEmptyPoolsToReserve = 2;
 };
 
 struct DescriptorBufferEmulationState {

@@ -193,6 +193,10 @@ VkResult VKAPI_CALL DescriptorBufferLayer_MapMemory(
 void VKAPI_CALL DescriptorBufferLayer_UnmapMemory(VkDevice device,
                                                   VkDeviceMemory memory);
 
+void VKAPI_CALL
+DescriptorBufferLayer_FreeMemory(VkDevice device, VkDeviceMemory memory,
+                                 const VkAllocationCallbacks *pAllocator);
+
 VkDeviceAddress VKAPI_CALL DescriptorBufferLayer_GetBufferDeviceAddress(
     VkDevice device, const VkBufferDeviceAddressInfo *pInfo);
 

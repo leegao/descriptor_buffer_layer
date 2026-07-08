@@ -821,6 +821,7 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
     GETPROCADDR(BindBufferMemory2);
     GETPROCADDR(MapMemory);
     GETPROCADDR(UnmapMemory);
+    GETPROCADDR(FreeMemory);
     GETPROCADDR(DestroyBuffer);
     GETPROCADDR(AllocateCommandBuffers);
     GETPROCADDR(FreeCommandBuffers);

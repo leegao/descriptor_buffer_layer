@@ -855,6 +855,11 @@ DescriptorBufferLayer_GetDeviceProcAddr(VkDevice device, const char *pName) {
             PFN_vkVoidFunction)&DescriptorBufferLayer_GetBufferDeviceAddress;
     }
 
+    if (!strcmp(pName, "vkBindBufferMemory2") ||
+        !strcmp(pName, "vkBindBufferMemory2KHR")) {
+        return (PFN_vkVoidFunction)&DescriptorBufferLayer_BindBufferMemory2;
+    }
+
     {
         scoped_lock l(global_lock);
         struct device *dev = get_device(device);

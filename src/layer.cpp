@@ -783,15 +783,28 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
     device->has_more_layers = has_more_layers;
 
     device->syncPool = std::make_unique<SyncPool>(device->handle);
-    uint32_t buffer_multiplier = 1u;
+
     const DescriptorSetAllocator::PoolSizes default_pool_sizes{
-        .sizes = {{.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                   .descriptorCount = 256u},
-                  {
-                      .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                      .descriptorCount = 256u * buffer_multiplier,
-                  }},
-        .maxSets = 256u,
+        .sizes =
+            {
+                {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 .descriptorCount = kInternalPoolMaxSets},
+                {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                 .descriptorCount = kInternalPoolMaxSets},
+                {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                 .descriptorCount = kInternalPoolMaxSets},
+                {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                 .descriptorCount = kInternalPoolMaxSets},
+                {.type = VK_DESCRIPTOR_TYPE_SAMPLER,
+                 .descriptorCount = kInternalPoolMaxSets},
+                {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                 .descriptorCount = kInternalPoolMaxSets},
+                {.type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                 .descriptorCount = kInternalPoolMaxSets},
+                {.type = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                 .descriptorCount = kInternalPoolMaxSets},
+            },
+        .maxSets = kInternalPoolMaxSets,
     };
     device->descriptorSetAllocator = std::make_unique<DescriptorSetAllocator>(
         device.get(), default_pool_sizes);

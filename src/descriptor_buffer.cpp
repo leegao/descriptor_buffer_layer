@@ -175,7 +175,10 @@ void ResolveAndBindDescriptorSets(struct device *dev, struct command_buffer *cb,
     if (boundPipeline != VK_NULL_HANDLE) {
         auto pipIt = dev->db.pipelines.find(boundPipeline);
         if (pipIt != dev->db.pipelines.end()) {
-            activeLayout = pipIt->second;
+            if (!pipIt->second.usesDescriptorBuffers) {
+                return;
+            }
+            activeLayout = pipIt->second.layout;
         }
     }
 

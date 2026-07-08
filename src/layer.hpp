@@ -2,6 +2,7 @@
 #define LAYER_HPP
 
 #include "logger.hpp"
+#include "pipelines.hpp"
 #include "staging_resources.hpp"
 #include "vk_func.hpp"
 #include "vulkan/vk_layer.h"
@@ -95,7 +96,7 @@ struct DescriptorBufferEmulationState {
     std::unordered_map<VkDescriptorSetLayout, TrackedDescriptorSetLayout>
         descriptorSetLayouts;
     std::unordered_map<VkPipelineLayout, TrackedPipelineLayout> pipelineLayouts;
-    std::unordered_map<VkPipeline, VkPipelineLayout> pipelines;
+    std::unordered_map<VkPipeline, TrackedPipeline> pipelines;
     std::unordered_map<VkDeviceMemory, void *> mappedMemory;
     std::map<VkDeviceAddress, VkBuffer> addressRangeStarts;
     BufferViewCache bufferViews;

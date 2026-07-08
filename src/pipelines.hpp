@@ -8,4 +8,9 @@ struct TrackedPipelineLayout {
     std::vector<VkDescriptorSetLayout> setLayouts;
 };
 
+struct TrackedPipeline {
+    VkPipelineLayout layout;
+    bool usesDescriptorBuffers;
+};
+
 #endif // PIPELINES_HPP

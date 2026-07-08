@@ -46,7 +46,11 @@ DescriptorBufferLayer_CreateGraphicsPipelines(
     // Strip away VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT
     std::vector<VkGraphicsPipelineCreateInfo> createInfos(
         pCreateInfos, pCreateInfos + createInfoCount);
+    std::vector<bool> usesDescriptorBuffers(createInfoCount);
     for (uint32_t i = 0; i < createInfoCount; ++i) {
+        usesDescriptorBuffers[i] =
+            (createInfos[i].flags &
+             VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT) != 0;
         createInfos[i].flags &= ~VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
     }
 
@@ -63,7 +67,8 @@ DescriptorBufferLayer_CreateGraphicsPipelines(
     std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
     for (uint32_t i = 0; i < createInfoCount; ++i) {
         if (pPipelines[i] != VK_NULL_HANDLE) {
-            dev->db.pipelines[pPipelines[i]] = createInfos[i].layout;
+            dev->db.pipelines[pPipelines[i]] = {createInfos[i].layout,
+                                                usesDescriptorBuffers[i]};
         }
     }
 
@@ -80,7 +85,11 @@ DescriptorBufferLayer_CreateComputePipelines(
     // Strip away VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT
     std::vector<VkComputePipelineCreateInfo> createInfos(
         pCreateInfos, pCreateInfos + createInfoCount);
+    std::vector<bool> usesDescriptorBuffers(createInfoCount);
     for (uint32_t i = 0; i < createInfoCount; ++i) {
+        usesDescriptorBuffers[i] =
+            (createInfos[i].flags &
+             VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT) != 0;
         createInfos[i].flags &= ~VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
     }
 
@@ -97,7 +106,8 @@ DescriptorBufferLayer_CreateComputePipelines(
     std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
     for (uint32_t i = 0; i < createInfoCount; ++i) {
         if (pPipelines[i] != VK_NULL_HANDLE) {
-            dev->db.pipelines[pPipelines[i]] = createInfos[i].layout;
+            dev->db.pipelines[pPipelines[i]] = {createInfos[i].layout,
+                                                usesDescriptorBuffers[i]};
         }
     }
 

@@ -801,6 +801,12 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_DestroyDevice(
     dev->syncPool.reset();
     dev->descriptorSetAllocator->cleanup();
     dev->descriptorSetAllocator.reset();
+
+    for (auto &pair : dev->db.bufferViews) {
+        dev->table.DestroyBufferView(device, pair.second, nullptr);
+    }
+    dev->db.bufferViews.clear();
+
     if (device != VK_NULL_HANDLE)
         dev->table.DestroyDevice(device, pAllocator);
 

@@ -96,6 +96,7 @@ struct DescriptorBufferEmulationState {
     std::unordered_map<VkPipeline, VkPipelineLayout> pipelines;
     std::unordered_map<VkDeviceMemory, void *> mappedMemory;
     std::map<VkDeviceAddress, VkBuffer> addressRangeStarts;
+    BufferViewCache bufferViews;
 };
 
 struct device {

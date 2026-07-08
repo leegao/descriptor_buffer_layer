@@ -29,6 +29,48 @@ void *get_host_pointer(struct device *dev, VkBuffer buffer) {
     return static_cast<char *>(memIt->second) + buf->offset;
 }
 
+VkBufferView get_staging_buffer_view(struct device *dev, VkBuffer buffer,
+                                     VkFormat format, VkDeviceSize offset,
+                                     VkDeviceSize range) {
+    BufferViewKey key{buffer, format, offset, range};
+    {
+        std::shared_lock<std::shared_mutex> lock(dev->db.mutex); // reader
+        auto it = dev->db.bufferViews.find(key);
+        if (it != dev->db.bufferViews.end()) {
+            return it->second;
+        }
+    }
+
+    VkBufferViewCreateInfo createInfo{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .buffer = buffer,
+        .format = format,
+        .offset = offset,
+        .range = range};
+
+    VkBufferView view = VK_NULL_HANDLE;
+    VkResult result =
+        dev->table.CreateBufferView(dev->handle, &createInfo, nullptr, &view);
+    if (result != VK_SUCCESS) {
+        Logger::log("error", "vkCreateBufferView failed, result: %d", result);
+        return VK_NULL_HANDLE;
+    }
+
+    {
+        std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
+        auto it = dev->db.bufferViews.find(key);
+        if (it != dev->db.bufferViews.end()) {
+            dev->table.DestroyBufferView(dev->handle, view, nullptr);
+            return it->second;
+        }
+        dev->db.bufferViews[key] = view;
+    }
+
+    return view;
+}
+
 VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateBuffer(
     VkDevice device, const VkBufferCreateInfo *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkBuffer *pBuffer) {

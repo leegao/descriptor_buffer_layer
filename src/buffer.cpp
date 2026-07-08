@@ -1,4 +1,5 @@
 #include "buffer.hpp"
+#include "descriptor_buffer.hpp"
 #include "layer.hpp"
 
 #include <atomic>
@@ -66,6 +67,28 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateBuffer(
     return VK_SUCCESS;
 }
 
+static void BindBufferDeviceAddress(struct device *dev, VkBuffer buffer,
+                                    struct buffer *buf) {
+    if (!dev->table.GetBufferDeviceAddress) {
+        Logger::log("error",
+                    "GetBufferDeviceAddress not supported, cannot proceed");
+        return;
+    }
+
+    VkBufferDeviceAddressInfo addrInfo{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+        .buffer = buffer};
+    buf->deviceAddress =
+        dev->table.GetBufferDeviceAddress(dev->handle, &addrInfo);
+    if (!buf->deviceAddress) {
+        Logger::log("error", "Buffer %p device address is nullptr", buffer);
+        return;
+    }
+
+    std::unique_lock<std::shared_mutex> lock(dev->db.mutex); // writer
+    dev->db.addressRangeStarts[buf->deviceAddress] = buffer;
+}
+
 VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_BindBufferMemory(
     VkDevice device, VkBuffer buffer, VkDeviceMemory memory,
     VkDeviceSize memoryOffset) {
@@ -87,10 +110,14 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_BindBufferMemory(
     }
 
     struct buffer *buf = find_buffer(buffer);
-    if (buf) {
-        buf->memory = memory;
-        buf->offset = memoryOffset;
+    if (!buf) {
+        Logger::log("error", "BindBufferMemory: Buffer %p not found", buffer);
+        return VK_SUCCESS;
     }
+
+    buf->memory = memory;
+    buf->offset = memoryOffset;
+    BindBufferDeviceAddress(dev, buffer, buf);
 
     return VK_SUCCESS;
 }
@@ -118,10 +145,15 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_BindBufferMemory2(
 
     for (uint32_t i = 0; i < bindInfoCount; i++) {
         struct buffer *buf = find_buffer(pBindInfos[i].buffer);
-        if (buf) {
-            buf->memory = pBindInfos[i].memory;
-            buf->offset = pBindInfos[i].memoryOffset;
+
+        if (!buf) {
+            Logger::log("error", "BindBufferMemory2: Buffer %p not found",
+                        pBindInfos[i].buffer);
+            continue;
         }
+        buf->memory = pBindInfos[i].memory;
+        buf->offset = pBindInfos[i].memoryOffset;
+        BindBufferDeviceAddress(dev, pBindInfos[i].buffer, buf);
     }
 
     return VK_SUCCESS;

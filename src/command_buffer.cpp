@@ -307,7 +307,8 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorSets2(
     dev->table.CmdBindDescriptorSets2(commandBuffer, pBindDescriptorSetsInfo);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorBuffersEXT(
+VK_LAYER_EXPORT void VKAPI_CALL
+DescriptorBufferLayer_CmdBindDescriptorBuffersEXT(
     VkCommandBuffer commandBuffer, uint32_t bufferCount,
     const VkDescriptorBufferBindingInfoEXT *pBindingInfos) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
@@ -341,7 +342,8 @@ void VKAPI_CALL DescriptorBufferLayer_CmdBindDescriptorBuffersEXT(
     }
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdSetDescriptorBufferOffsetsEXT(
+VK_LAYER_EXPORT void VKAPI_CALL
+DescriptorBufferLayer_CmdSetDescriptorBufferOffsetsEXT(
     VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
     VkPipelineLayout layout, uint32_t firstSet, uint32_t setCount,
     const uint32_t *pBufferIndices, const VkDeviceSize *pOffsets) {
@@ -399,7 +401,7 @@ VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdPushConstants2(
     dev->table.CmdPushConstants2(commandBuffer, pPushConstantsInfo);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer(
     VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer,
     uint32_t regionCount, const VkBufferCopy *pRegions) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
@@ -418,7 +420,7 @@ void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer(
                                     regionCount, pRegions);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer2(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer2(
     VkCommandBuffer commandBuffer, const VkCopyBufferInfo2 *pCopyBufferInfo) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
     if (!cb) {
@@ -435,7 +437,7 @@ void VKAPI_CALL DescriptorBufferLayer_CmdCopyBuffer2(
     cb->device->table.CmdCopyBuffer2(commandBuffer, pCopyBufferInfo);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdUpdateBuffer(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdUpdateBuffer(
     VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
     VkDeviceSize dataSize, const void *pData) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
@@ -454,11 +456,9 @@ void VKAPI_CALL DescriptorBufferLayer_CmdUpdateBuffer(
                                       dataSize, pData);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdDraw(VkCommandBuffer commandBuffer,
-                                              uint32_t vertexCount,
-                                              uint32_t instanceCount,
-                                              uint32_t firstVertex,
-                                              uint32_t firstInstance) {
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdDraw(
+    VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount,
+    uint32_t firstVertex, uint32_t firstInstance) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
     if (!cb) {
         Logger::log("error", "Failed to get command buffer for CmdDraw");
@@ -470,7 +470,7 @@ void VKAPI_CALL DescriptorBufferLayer_CmdDraw(VkCommandBuffer commandBuffer,
                               firstVertex, firstInstance);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexed(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexed(
     VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount,
     uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
@@ -484,7 +484,7 @@ void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexed(
                                      firstIndex, vertexOffset, firstInstance);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndirect(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndirect(
     VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
     uint32_t drawCount, uint32_t stride) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
@@ -499,7 +499,7 @@ void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndirect(
                                       stride);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexedIndirect(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexedIndirect(
     VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
     uint32_t drawCount, uint32_t stride) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
@@ -514,10 +514,9 @@ void VKAPI_CALL DescriptorBufferLayer_CmdDrawIndexedIndirect(
                                              drawCount, stride);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdDispatch(VkCommandBuffer commandBuffer,
-                                                  uint32_t groupCountX,
-                                                  uint32_t groupCountY,
-                                                  uint32_t groupCountZ) {
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdDispatch(
+    VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY,
+    uint32_t groupCountZ) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
     if (!cb) {
         Logger::log("error", "Failed to get command buffer for CmdDispatch");
@@ -529,7 +528,7 @@ void VKAPI_CALL DescriptorBufferLayer_CmdDispatch(VkCommandBuffer commandBuffer,
                                   groupCountZ);
 }
 
-void VKAPI_CALL DescriptorBufferLayer_CmdDispatchIndirect(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_CmdDispatchIndirect(
     VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset) {
     struct command_buffer *cb = get_command_buffer(commandBuffer);
     if (!cb) {

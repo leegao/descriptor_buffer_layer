@@ -97,7 +97,7 @@ DescriptorBufferLayer_GetDescriptorSetLayoutBindingOffsetEXT(
     }
 }
 
-void VKAPI_CALL DescriptorBufferLayer_GetDescriptorEXT(
+VK_LAYER_EXPORT void VKAPI_CALL DescriptorBufferLayer_GetDescriptorEXT(
     VkDevice device, const VkDescriptorGetInfoEXT *pDescriptorInfo,
     size_t dataSize, void *pDescriptor) {
     struct device *dev = get_device(device);

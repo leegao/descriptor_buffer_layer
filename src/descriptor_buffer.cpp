@@ -330,7 +330,7 @@ void ResolveAndBindDescriptorSets(struct device *dev, struct command_buffer *cb,
             dev->table.CmdBindDescriptorSets(cb->handle, bindPoint,
                                              activeLayout, setIndex, 1,
                                              &resolvedSet, 0, nullptr);
-            return;
+            continue;
         }
 
         VkDescriptorPool assignedPool = VK_NULL_HANDLE;

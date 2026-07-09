@@ -1,10 +1,8 @@
 #ifndef LAYER_HPP
 #define LAYER_HPP
 
-#include "logger.hpp"
 #include "pipelines.hpp"
 #include "staging_resources.hpp"
-#include "vk_func.hpp"
 #include "vulkan/vk_layer.h"
 
 #include <atomic>
@@ -104,6 +102,7 @@ struct DescriptorBufferEmulationState {
 
 struct device {
     VkDevice handle;
+    uint32_t deviceId;
     VkPhysicalDevice physical;
     VkPhysicalDeviceProperties2 props2;
     VkPhysicalDeviceFeatures features;

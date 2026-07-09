@@ -1,4 +1,5 @@
 #include "layer.hpp"
+#include "logger.hpp"
 #include "pipelines.hpp"
 
 VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreatePipelineLayout(

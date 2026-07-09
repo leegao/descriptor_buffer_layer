@@ -5,9 +5,54 @@
 #include "layer.hpp"
 #include "logger.hpp"
 #include "pipelines.hpp"
+
+#include <cstdint>
 #include <cstring>
 #include <deque>
 #include <variant>
+
+DescriptorSetCache &GetTLDescriptorSetCache(device *dev) {
+    thread_local std::unordered_map<uint32_t, DescriptorSetCache> tlsCaches;
+    return tlsCaches[dev->deviceId];
+}
+
+size_t hash_bytes(const void *data, size_t size) {
+    std::string_view sv(reinterpret_cast<const char *>(data), size);
+    return std::hash<std::string_view>{}(sv);
+}
+
+std::optional<VkDescriptorSet> DescriptorSetCache::Find(const Key &key) {
+    auto it = map.find(key);
+    if (it == map.end())
+        return std::nullopt;
+    lru.splice(lru.begin(), lru, it->second.second);
+    return it->second.first;
+}
+
+void DescriptorSetCache::Insert(const Key &key, VkDescriptorSet set) {
+    if (auto it = map.find(key); it != map.end()) {
+        it->second.first = set;
+        lru.splice(lru.begin(), lru, it->second.second);
+        return;
+    }
+
+    if (map.size() >= kDescriptorSetCacheCapacity) {
+        // TODO: clean up and free the descriptors associated with the evicted
+        // entry
+        // Key oldestKey = lru.back();
+        // map.erase(oldestKey);
+        // lru.pop_back();
+    }
+
+    lru.push_front(key);
+    map.emplace(key, std::make_pair(set, lru.begin()));
+}
+
+void DescriptorSetCache::Clear() {
+    // TODO: clean up during vkDestroyDevice
+    lru.clear();
+    map.clear();
+}
 
 std::optional<VkBuffer> FindBufferForAddress(struct device *dev,
                                              VkDeviceAddress address) {
@@ -267,7 +312,27 @@ void ResolveAndBindDescriptorSets(struct device *dev, struct command_buffer *cb,
             dev->table.InvalidateMappedMemoryRanges(dev->handle, 1, &range);
         }
 
+        const char *data =
+            static_cast<const char *>(hostBase) + state.offsetForSet[setIndex];
+        const auto payloadHash =
+            hash_bytes(data, static_cast<size_t>(layoutInfo.totalSize));
+        DescriptorSetCache::Key cacheKey{layoutHandle, payloadHash};
+        auto &cache = GetTLDescriptorSetCache(dev);
+
         VkDescriptorSet resolvedSet = VK_NULL_HANDLE;
+        bool cacheHit = false;
+        if (auto cached = cache.Find(cacheKey)) {
+            resolvedSet = *cached;
+            cacheHit = true;
+        }
+
+        if (cacheHit) {
+            dev->table.CmdBindDescriptorSets(cb->handle, bindPoint,
+                                             activeLayout, setIndex, 1,
+                                             &resolvedSet, 0, nullptr);
+            return;
+        }
+
         VkDescriptorPool assignedPool = VK_NULL_HANDLE;
         VkResult allocResult = dev->descriptorSetAllocator->allocate(
             layoutHandle, &assignedPool, &resolvedSet);
@@ -279,8 +344,6 @@ void ResolveAndBindDescriptorSets(struct device *dev, struct command_buffer *cb,
 
         std::vector<VkWriteDescriptorSet> updates;
         std::deque<VkDescriptorInfoStorage> descriptorInfoStorage;
-        const char *data =
-            static_cast<const char *>(hostBase) + state.offsetForSet[setIndex];
 
         VkDeviceSize cursor = 0;
         for (const auto &binding : layoutInfo.bindings) {
@@ -315,6 +378,7 @@ void ResolveAndBindDescriptorSets(struct device *dev, struct command_buffer *cb,
                 updates.data(), 0, nullptr);
         }
 
+        cache.Insert(cacheKey, resolvedSet);
         dev->table.CmdBindDescriptorSets(cb->handle, bindPoint, activeLayout,
                                          setIndex, 1, &resolvedSet, 0, nullptr);
     }

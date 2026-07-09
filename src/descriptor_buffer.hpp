@@ -3,7 +3,9 @@
 
 #include "descriptors.hpp"
 
+#include <list>
 #include <optional>
+#include <unordered_map>
 #include <vulkan/vulkan.h>
 
 constexpr uint64_t kLayerMagic = 0xDEB0FEE5ULL;
@@ -31,6 +33,28 @@ struct alignas(8) EmulatedDescriptor {
 };
 static_assert(sizeof(EmulatedDescriptor) <= kDescriptorSize,
               "EmulatedDescriptor must fit inside 64-byte layout size.");
+
+class DescriptorSetCache {
+  public:
+    using Key = std::pair<VkDescriptorSetLayout, uint64_t>;
+
+    std::optional<VkDescriptorSet> Find(const Key &key);
+    void Insert(const Key &key, VkDescriptorSet set);
+    void Clear();
+
+  private:
+    struct KeyHash {
+        std::size_t operator()(const Key &k) const {
+            return std::hash<void *>{}(k.first) ^
+                   (std::hash<uint64_t>{}(k.second) << 1);
+        }
+    };
+
+    std::list<Key> lru;
+    std::unordered_map<
+        Key, std::pair<VkDescriptorSet, std::list<Key>::iterator>, KeyHash>
+        map;
+};
 
 struct device;
 struct command_buffer;

@@ -4,7 +4,7 @@
 #include "descriptors.hpp"
 #include "logger.hpp"
 #include "pipeline_state.hpp"
-#include "pipelines.hpp"
+#include "vk_func.hpp"
 #include "vulkan/vk_layer.h"
 
 #include <algorithm>
@@ -811,6 +811,9 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL DescriptorBufferLayer_CreateDevice(
 
     device->stop_thread = false;
     device->finalizer_thread = std::thread(FinalizerThread, device.get());
+
+    static std::atomic<uint64_t> nextDeviceIdCounter{1};
+    device->deviceId = nextDeviceIdCounter.fetch_add(1);
 
     {
         scoped_lock l(global_lock);

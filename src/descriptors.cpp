@@ -1,6 +1,8 @@
 #include "descriptor_buffer.hpp"
 #include "descriptors.hpp"
 #include "layer.hpp"
+#include "logger.hpp"
+
 #include <cstring>
 
 VK_LAYER_EXPORT VkResult VKAPI_CALL

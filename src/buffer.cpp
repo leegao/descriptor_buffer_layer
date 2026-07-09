@@ -1,6 +1,7 @@
 #include "buffer.hpp"
 #include "descriptor_buffer.hpp"
 #include "layer.hpp"
+#include "logger.hpp"
 
 #include <atomic>
 #include <unordered_map>
